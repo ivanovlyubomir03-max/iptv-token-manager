@@ -1,1 +1,330 @@
-<!DOCTYPE html> <html lang="bg"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1"> <title>IPTV Token Manager</title> <style> body{font-family:Arial,sans-serif;max-width:750px;margin:20px auto;padding:15px;background:#f2f4f7;color:#222} h1{font-size:25px} textarea,input,button{box-sizing:border-box;width:100%;padding:12px;margin:7px 0;border-radius:8px;font-size:16px} textarea,input{border:1px solid #bbb;background:white} textarea{height:190px} button{border:0;background:#1769e0;color:white;font-weight:bold} .check-button{background:#198754} .clear-button{background:#555} .note{background:#fff3cd;padding:12px;border-radius:8px;font-size:14px} .result{background:white;padding:12px;border-radius:8px;margin:8px 0;overflow-wrap:anywhere} </style> </head> <body> <h1>📺 IPTV Token Manager</h1> <p>Добави имената и адресите на каналите, за да създадеш M3U плейлист.</p> <label>Име на плейлиста</label> <input id="playlistName" value="My IPTV Playlist"> <label>Канали — по един на ред</label> <p>Формат: Име на канала | URL адрес</p> <textarea id="channels" placeholder="Канал 1 | https://example.com/stream.m3u8 Канал 2 | https://example.com/stream2.m3u8"></textarea> <button onclick="generate()">⬇️ Изтегли M3U плейлист</button> <button class="check-button" onclick="checkChannels()">🔎 Провери адресите</button> <button class="clear-button" onclick="clearForm()">Изчисти полетата</button> <div id="results" aria-live="polite"></div> <div class="note"> <strong>Важно:</strong> проверката показва дали сървърът отговаря. Тя не гарантира, че потокът ще се възпроизвежда, и не подновява автоматично изтекли токени. Не публикувай лични или временни токени в публично хранилище. </div> <script> function getChannels(){ const lines=document.getElementById('channels').value.split(/\r?\n/); const channels=[]; for(const line of lines){ const pos=line.indexOf('|'); if(pos<0) continue; const name=line.slice(0,pos).trim(); const url=line.slice(pos+1).trim(); if(!name||!url) continue; try{ const parsed=new URL(url); if(!['http:','https:'].includes(parsed.protocol)) continue; }catch{continue;} channels.push({name,url}); } return channels; } function generate(){ const name=document.getElementById('playlistName').value.trim()||'IPTV Playlist'; const channels=getChannels(); if(!channels.length){ alert('Добави поне един канал във формат Име | URL'); return; } let output='#EXTM3U\n'; for(const channel of channels){ output+='#EXTINF:-1,'+channel.name.replace(/[\r\n]/g,'')+'\n'+channel.url+'\n'; } const blob=new Blob([output],{type:'audio/x-mpegurl;charset=utf-8'}); const objectUrl=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=objectUrl; a.download=name.replace(/[^a-z0-9а-яё_-]/gi,'_')+'.m3u'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(objectUrl),1000); alert('Готово! Създадени са '+channels.length+' канала.'); } async function checkChannels(){ const channels=getChannels(); const results=document.getElementById('results'); results.replaceChildren(); if(!channels.length){ alert('Първо добави адреси във формат Име | URL'); return; } const button=document.querySelector('.check-button'); button.disabled=true; button.textContent='⏳ Проверявам...'; try{ for(const channel of channels){ const card=document.createElement('div'); card.className='result'; const title=document.createElement('strong'); title.textContent=channel.name; const status=document.createElement('p'); status.textContent='Проверява се...'; card.append(title,status); results.appendChild(card); try{ const response=await fetch('/api/check',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url:channel.url}) }); const data=await response.json(); if(response.ok&&data.ok){ status.textContent='✅ '+(data.message||'Сървърът отговори успешно.')+ (data.status?' HTTP '+data.status:''); }else{ status.textContent='⚠️ '+(data.message||'Адресът не беше потвърден.'); } }catch{ status.textContent='❌ Неуспешна заявка. Провери интернет връзката и API-то.'; } } }finally{ button.disabled=false; button.textContent='🔎 Провери адресите'; } } function clearForm(){ if(confirm('Да изчистя ли всички въведени данни?')){ document.getElementById('channels').value=''; document.getElementById('results').replaceChildren(); } } </script> </body> </html> 
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IPTV Token Manager</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  max-width: 750px;
+  margin: 20px auto;
+  padding: 15px;
+  background: #f2f4f7;
+  color: #222;
+}
+h1 { font-size: 25px; }
+input, textarea, button {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+  margin: 7px 0;
+  border-radius: 8px;
+  font-size: 16px;
+}
+input, textarea {
+  border: 1px solid #bbb;
+  background: white;
+}
+textarea { height: 160px; }
+button {
+  border: 0;
+  background: #1769e0;
+  color: white;
+  font-weight: bold;
+}
+.search { background: #7045d6; }
+.check { background: #198754; }
+.clear { background: #555; }
+.result {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.note {
+  background: #fff3cd;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📺 IPTV Token Manager</h1>
+
+<p>Намиране на публични playlist адреси, проверка и създаване на M3U плейлист.</p>
+
+<label><b>1. Адрес на телевизионния сайт</b></label>
+
+<input
+  id="siteUrl"
+  type="url"
+  value="https://www.gledaitv.live/watch-tv/60/nova-tv-online"
+  placeholder="https://example.com/tv"
+>
+
+<button class="search" onclick="discover()">
+🔍 Намери канали
+</button>
+
+<div id="found" aria-live="polite"></div>
+
+<hr>
+
+<label><b>2. Име на плейлиста</b></label>
+
+<input id="playlistName" value="My IPTV Playlist">
+
+<label><b>3. Канали — по един на ред</b></label>
+
+<p>Формат: Име на канала | URL адрес</p>
+
+<textarea
+  id="channels"
+  placeholder="NOVA TV | https://example.com/stream.m3u8"
+></textarea>
+
+<button onclick="generate()">
+⬇️ Изтегли M3U плейлист
+</button>
+
+<button class="check" onclick="checkChannels()">
+✅ Провери адресите
+</button>
+
+<button class="clear" onclick="clearForm()">
+Изчисти полетата
+</button>
+
+<div id="results" aria-live="polite"></div>
+
+<div class="note">
+<b>Важно:</b> Намирането работи само с директни playlist връзки,
+публикувани в достъпната HTML страница. Ако видеоплейърът
+зарежда адресите скрито или използва временни токени,
+те може да не бъдат открити. Не публикувай лични или временни токени.
+</div>
+
+<script>
+async function discover() {
+  const input = document.getElementById("siteUrl");
+  const found = document.getElementById("found");
+  const button = document.querySelector(".search");
+
+  found.replaceChildren();
+
+  let page;
+
+  try {
+    page = new URL(input.value.trim());
+  } catch {
+    found.textContent = "Въведи валиден адрес на сайт.";
+    return;
+  }
+
+  if (page.protocol !== "https:") {
+    found.textContent = "Използвай HTTPS адрес.";
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "⏳ Търся канали...";
+
+  try {
+    const response = await fetch("/api/discover", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        url: page.href
+      })
+    });
+
+    const data = await response.json();
+
+    const message = document.createElement("p");
+    message.textContent = data.message || "Проверката приключи.";
+    found.appendChild(message);
+
+    if (!data.ok || !Array.isArray(data.links) || !data.links.length) {
+      return;
+    }
+
+    const heading = document.createElement("h3");
+    heading.textContent = "Намерени адреси: " + data.links.length;
+    found.appendChild(heading);
+
+    data.links.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "result";
+
+      const label = document.createElement("label");
+      const checkbox = document.createElement("input");
+
+      checkbox.type = "checkbox";
+      checkbox.style.width = "auto";
+      checkbox.style.marginRight = "8px";
+      checkbox.dataset.name = item.name;
+      checkbox.dataset.url = item.url;
+
+      label.appendChild(checkbox);
+      label.appendChild(document.createTextNode(item.name));
+
+      const address = document.createElement("div");
+      address.textContent = item.url;
+      address.style.fontSize = "12px";
+      address.style.marginTop = "8px";
+
+      card.appendChild(label);
+      card.appendChild(address);
+      found.appendChild(card);
+    });
+
+    const addButton = document.createElement("button");
+    addButton.textContent = "➕ Добави избраните канали";
+    addButton.onclick = () => {
+      const selected = [...found.querySelectorAll(
+        'input[type="checkbox"]:checked'
+      )];
+
+      if (!selected.length) {
+        alert("Първо избери поне един адрес.");
+        return;
+      }
+
+      const textarea = document.getElementById("channels");
+      const existing = textarea.value.trim();
+
+      const newLines = selected.map(box =>
+        box.dataset.name + " | " + box.dataset.url
+      );
+
+      textarea.value = existing
+        ? existing + "\n" + newLines.join("\n")
+        : newLines.join("\n");
+
+      alert("Добавени са " + newLines.length + " адреса.");
+    };
+
+    found.appendChild(addButton);
+
+  } catch (error) {
+    found.textContent =
+      "Грешка при свързването. Провери дали новият API файл е публикуван във Vercel.";
+  } finally {
+    button.disabled = false;
+    button.textContent = "🔍 Намери канали";
+  }
+}
+
+function getChannels() {
+  return document.getElementById("channels").value
+    .split(/\r?\n/)
+    .map(line => {
+      const pos = line.indexOf("|");
+      if (pos < 0) return null;
+
+      const name = line.slice(0, pos).trim();
+      const url = line.slice(pos + 1).trim();
+
+      try {
+        const parsed = new URL(url);
+
+        if (
+          !name ||
+          !["http:", "https:"].includes(parsed.protocol)
+        ) return null;
+
+        return { name, url };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+}
+
+function generate() {
+  const channels = getChannels();
+
+  if (!channels.length) {
+    alert("Добави поне един канал във формат Име | URL");
+    return;
+  }
+
+  let output = "#EXTM3U\n";
+
+  channels.forEach(channel => {
+    output += "#EXTINF:-1," +
+      channel.name.replace(/[\r\n]/g, "") +
+      "\n" + channel.url + "\n";
+  });
+
+  const blob = new Blob([output], {
+    type: "audio/x-mpegurl;charset=utf-8"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = "playlist.m3u";
+  a.click();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function checkChannels() {
+  const channels = getChannels();
+  const results = document.getElementById("results");
+
+  results.replaceChildren();
+
+  if (!channels.length) {
+    alert("Добави адреси за проверка.");
+    return;
+  }
+
+  for (const channel of channels) {
+    const card = document.createElement("div");
+    card.className = "result";
+    card.textContent = channel.name + ": Проверява се...";
+    results.appendChild(card);
+
+    try {
+      const response = await fetch("/api/check", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ url: channel.url })
+      });
+
+      const data = await response.json();
+
+      card.textContent = channel.name + ": " +
+        (data.message || "Няма резултат.");
+
+    } catch {
+      card.textContent =
+        channel.name + ": Грешка при проверката.";
+    }
+  }
+}
+
+function clearForm() {
+  if (confirm("Да изчистя ли въведените канали?")) {
+    document.getElementById("channels").value = "";
+    document.getElementById("results").replaceChildren();
+    document.getElementById("found").replaceChildren();
+  }
+}
+</script>
+
+</body>
+</html>
