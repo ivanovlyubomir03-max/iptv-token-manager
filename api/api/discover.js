@@ -9,121 +9,125 @@ export default async function handler(req, res) {
     });
   }
 
-  let page;
+  const base = "https://www.gledaitv.live";
 
-  try {
-    page = new URL(req.body?.url || "https://www.gledaitv.live/");
-  } catch {
-    return res.status(400).json({
-      ok: false,
-      message: "Невалиден адрес."
-    });
-  }
-
-  const allowedHosts = [
-    "gledaitv.live",
-    "www.gledaitv.live"
+  const categories = [
+    { name: "Детски", path: "/category/detski" },
+    { name: "Музикални", path: "/category/muzikalni" },
+    { name: "Научнопопулярни", path: "/category/nauka" },
+    { name: "Национални", path: "/category/nacionalni" },
+    { name: "Филмови", path: "/category/filmi" },
+    { name: "Общи", path: "/category/obshti" },
+    { name: "Спортни", path: "/category/sport" },
+    { name: "Чуждестранни", path: "/category/worldwide" }
   ];
 
-  if (
-    page.protocol !== "https:" ||
-    !allowedHosts.includes(page.hostname)
-  ) {
-    return res.status(403).json({
-      ok: false,
-      message: "Разрешен е само сайтът GledaiTV."
-    });
-  }
+  const allChannels = new Map();
+  const errors = [];
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10000);
+  for (const category of categories) {
+    const controller = new AbortController();
+    const timer = setTimeout(
+      () => controller.abort(),
+      8000
+    );
 
-  try {
-    const response = await fetch(page.href, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "IPTV-Token-Manager/1.0",
-        "Accept": "text/html"
-      },
-      redirect: "follow"
-    });
+    try {
+      const response = await fetch(
+        base + category.path,
+        {
+          signal: controller.signal,
+          headers: {
+            "User-Agent": "IPTV-Token-Manager/1.0",
+            "Accept": "text/html"
+          }
+        }
+      );
 
-    if (!response.ok) {
-      return res.status(200).json({
-        ok: false,
-        message: "Сайтът върна HTTP " + response.status
-      });
-    }
+      if (!response.ok) {
+        errors.push(category.name + ": HTTP " + response.status);
+        continue;
+      }
 
-    const html = (await response.text()).slice(0, 1000000);
-    const links = [];
-    const pattern =
-      /<a\b[^>]*href\s*=\s*(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a\s*>/gi;
+      const html = (await response.text()).slice(0, 1000000);
 
-    let match;
+      const pattern =
+        /<a\b[^>]*href\s*=\s*(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a\s*>/gi;
 
-    while ((match = pattern.exec(html)) !== null) {
-      const href = match[2]
-        .replace(/&amp;/g, "&")
-        .trim();
+      let match;
 
-      try {
-        const url = new URL(href, page);
+      while ((match = pattern.exec(html)) !== null) {
+        const href = match[2]
+          .replace(/&amp;/g, "&")
+          .trim();
+
+        let url;
+
+        try {
+          url = new URL(href, base);
+        } catch {
+          continue;
+        }
 
         if (
-          url.protocol !== "https:" ||
-          !allowedHosts.includes(url.hostname)
+          url.hostname !== "www.gledaitv.live" &&
+          url.hostname !== "gledaitv.live"
         ) {
+          continue;
+        }
+
+        if (!/^\/watch-tv\/\d+\//i.test(url.pathname)) {
           continue;
         }
 
         const name = match[3]
           .replace(/<[^>]*>/g, " ")
+          .replace(/&nbsp;/gi, " ")
+          .replace(/&amp;/gi, "&")
           .replace(/\s+/g, " ")
+          .replace(/\s+(НА ЖИВО|На живо)$/i, "")
           .trim();
 
-        if (!name || name.length > 100) {
-          continue;
-        }
+        if (!name) continue;
 
-        if (
-          url.pathname === "/" ||
-          /\/(категории|categories|contact|about)\/?$/i.test(url.pathname)
-        ) {
-          continue;
-        }
+        url.hash = "";
 
-        links.push({
-          name,
-          url: url.href,
-          type: /\.(m3u8?|m3u)(?:[?#]|$)/i.test(url.href)
-            ? "playlist"
-            : "channel_page"
-        });
-      } catch {}
+        const key = url.pathname;
+
+        if (!allChannels.has(key)) {
+          allChannels.set(key, {
+            name,
+            category: category.name,
+            url: url.href,
+            type: "channel_page"
+          });
+        }
+      }
+    } catch (error) {
+      errors.push(
+        category.name + ": " +
+        (error.name === "AbortError"
+          ? "времето за изчакване изтече"
+          : "страницата не може да бъде прочетена")
+      );
+    } finally {
+      clearTimeout(timer);
     }
-
-    const unique = [
-      ...new Map(links.map(item => [item.url, item])).values()
-    ].slice(0, 100);
-
-    return res.status(200).json({
-      ok: true,
-      count: unique.length,
-      links: unique,
-      message: unique.length
-        ? "Намерени са " + unique.length + " публични връзки."
-        : "Не са намерени подходящи връзки на тази страница."
-    });
-
-  } catch (error) {
-    return res.status(200).json({
-      ok: false,
-      message: error.name === "AbortError"
-        ? "Изтече времето за проверка."
-        : "Страницата не може да бъде прочетена."
-    });
-  } finally {
-    clearTimeout(timer);
   }
+
+  const channels = [...allChannels.values()]
+    .sort((a, b) => a.name.localeCompare(b.name, "bg"));
+
+  return res.status(200).json({
+    ok: true,
+    count: channels.length,
+    links: channels,
+    categories: categories.length,
+    errors,
+    message: channels.length
+      ? "Намерени са " + channels.length +
+        " различни страници на канали от " +
+        categories.length + " категории."
+      : "Не бяха намерени страници на канали. Провери връзката със сайта."
+  });
 }
