@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   let page;
 
   try {
-    page = new URL(req.body?.url || "");
+    page = new URL(req.body?.url || "https://www.gledaitv.live/");
   } catch {
     return res.status(400).json({
       ok: false,
@@ -20,41 +20,38 @@ export default async function handler(req, res) {
     });
   }
 
-  const allowed = [
+  const allowedHosts = [
     "gledaitv.live",
     "www.gledaitv.live"
   ];
 
   if (
     page.protocol !== "https:" ||
-    !allowed.includes(page.hostname)
+    !allowedHosts.includes(page.hostname)
   ) {
     return res.status(403).json({
       ok: false,
-      message: "Този сайт не е разрешен."
+      message: "Разрешен е само сайтът GledaiTV."
     });
   }
 
   const controller = new AbortController();
-  const timer = setTimeout(
-    () => controller.abort(),
-    8000
-  );
+  const timer = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const response = await fetch(page, {
+    const response = await fetch(page.href, {
       signal: controller.signal,
       headers: {
         "User-Agent": "IPTV-Token-Manager/1.0",
         "Accept": "text/html"
       },
-      redirect: "error"
+      redirect: "follow"
     });
 
     if (!response.ok) {
       return res.status(200).json({
         ok: false,
-        message: "Страницата върна HTTP " + response.status
+        message: "Сайтът върна HTTP " + response.status
       });
     }
 
@@ -66,16 +63,17 @@ export default async function handler(req, res) {
     let match;
 
     while ((match = pattern.exec(html)) !== null) {
-      const href = match[2].replace(/&amp;/g, "&").trim();
-
-      if (!/\.(m3u8?|m3u)(?:[?#]|$)/i.test(href)) {
-        continue;
-      }
+      const href = match[2]
+        .replace(/&amp;/g, "&")
+        .trim();
 
       try {
         const url = new URL(href, page);
 
-        if (!["http:", "https:"].includes(url.protocol)) {
+        if (
+          url.protocol !== "https:" ||
+          !allowedHosts.includes(url.hostname)
+        ) {
           continue;
         }
 
@@ -84,26 +82,38 @@ export default async function handler(req, res) {
           .replace(/\s+/g, " ")
           .trim();
 
+        if (!name || name.length > 100) {
+          continue;
+        }
+
+        if (
+          url.pathname === "/" ||
+          /\/(категории|categories|contact|about)\/?$/i.test(url.pathname)
+        ) {
+          continue;
+        }
+
         links.push({
-          name: name || "Телевизионен поток",
-          url: url.href
+          name,
+          url: url.href,
+          type: /\.(m3u8?|m3u)(?:[?#]|$)/i.test(url.href)
+            ? "playlist"
+            : "channel_page"
         });
       } catch {}
-
-      if (links.length >= 50) break;
     }
 
     const unique = [
-      ...new Map(links.map(x => [x.url, x])).values()
-    ];
+      ...new Map(links.map(item => [item.url, item])).values()
+    ].slice(0, 100);
 
     return res.status(200).json({
       ok: true,
       count: unique.length,
       links: unique,
       message: unique.length
-        ? "Намерени са публични playlist връзки."
-        : "Не са намерени директни публични M3U/M3U8 връзки."
+        ? "Намерени са " + unique.length + " публични връзки."
+        : "Не са намерени подходящи връзки на тази страница."
     });
 
   } catch (error) {
@@ -113,7 +123,6 @@ export default async function handler(req, res) {
         ? "Изтече времето за проверка."
         : "Страницата не може да бъде прочетена."
     });
-
   } finally {
     clearTimeout(timer);
   }
