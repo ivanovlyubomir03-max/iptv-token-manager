@@ -64,8 +64,22 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 <div id="streamStatus" class="status" aria-live="polite"></div>
 </section>
 
+
 <section>
-<h2>3. 📃 Създай M3U плейлист</h2>
+<h2>3. ▶️ Вграден плеър за тест на потока</h2>
+<p class="small">Постави директен HTTPS адрес към .m3u8. Плеърът възпроизвежда потока в браузъра, когато форматът и сървърът го позволяват. Някои източници блокират възпроизвеждане от друг сайт (CORS) или изискват валиден токен.</p>
+<label for="playerUrl">Видеоадрес (.m3u8)</label>
+<input id="playerUrl" type="url" placeholder="Постави линка към потока тук">
+<div class="grid">
+<button id="playButton" onclick="playStream()">▶️ Отвори в плеъра</button>
+<button class="dark" onclick="usePlaylistAddress()">↙️ Вземи адреса от M3U полето</button>
+</div>
+<video id="streamPlayer" controls playsinline preload="none" style="width:100%;max-height:55vh;background:#090d15;border-radius:10px;margin-top:8px"></video>
+<div id="playerStatus" class="status" aria-live="polite"></div>
+</section>
+
+<section>
+<h2>4. 📃 Създай M3U плейлист</h2>
 <label for="playlistName">Име на плейлиста</label>
 <input id="playlistName" value="Bulgarian TV">
 <label for="channels">Адреси за проверка — постави линка самостоятелно или във формат „Име | URL“</label>
@@ -83,7 +97,54 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 <b>Важно за токените:</b> приложението може да провери дали даден адрес отговаря, но не може само да поднови изтекъл токен. Автоматично обновяване е възможно само ако източникът предлага разрешен начин за получаване на нов адрес. Не се заобикалят DRM, вход или други защити.
 </section>
 
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 <script>
+let hlsInstance = null;
+function usePlaylistAddress() {
+  const channels = getChannels();
+  if (!channels.length) {
+    setMessage(document.getElementById("playerStatus"), "Първо постави адрес в M3U полето или директно в полето на плеъра.", "warn");
+    return;
+  }
+  document.getElementById("playerUrl").value = channels[0].url;
+  playStream();
+}
+function playStream() {
+  const input = document.getElementById("playerUrl");
+  const video = document.getElementById("streamPlayer");
+  const status = document.getElementById("playerStatus");
+  const value = input.value.trim();
+  let url;
+  try { url = new URL(value); } catch {
+    setMessage(status, "Постави валиден адрес към видео поток.", "warn");
+    return;
+  }
+  if (url.protocol !== "https:" || url.username || url.password) {
+    setMessage(status, "За безопасност се приемат само HTTPS адреси без вградени потребителски данни.", "warn");
+    return;
+  }
+  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+  status.textContent = "⏳ Зареждам потока... Ако не тръгне, сървърът може да изисква достъп или да блокира възпроизвеждане от този сайт.";
+  video.onerror = () => setMessage(status, "Браузърът не успя да отвори потока. Възможни причини: токенът е невалиден, форматът не се поддържа или сървърът блокира външния плеър.", "warn");
+  video.onplaying = () => setMessage(status, "✅ Видеото се възпроизвежда.", "good");
+  if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    video.src = url.href;
+    video.play().catch(() => setMessage(status, "Адресът е зареден. Натисни Play във видеото, ако браузърът блокира автоматичното пускане.", "warn"));
+  } else if (window.Hls && Hls.isSupported()) {
+    hlsInstance = new Hls({enableWorker:true, lowLatencyMode:false});
+    hlsInstance.on(Hls.Events.ERROR, (_event, data) => {
+      if (data.fatal) setMessage(status, "Плеърът не може да зареди потока. Провери валидността на адреса и дали сървърът разрешава външно възпроизвеждане (CORS).", "warn");
+    });
+    hlsInstance.loadSource(url.href);
+    hlsInstance.attachMedia(video);
+    hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => setMessage(status, "Потокът е зареден. Натисни Play във видеото, ако автоматичното пускане е блокирано.", "warn")));
+  } else {
+    setMessage(status, "Този браузър не поддържа HLS възпроизвеждане. Опитай с актуален Chrome или Web Video Caster.", "warn");
+  }
+}
 let discoveredChannels = [];
 let discoveredStreams = [];
 
