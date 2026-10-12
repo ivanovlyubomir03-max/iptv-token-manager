@@ -39,10 +39,7 @@ body > section{display:none}
 body > section:nth-of-type(1),
 body > section:nth-of-type(4){display:block}
 body > section:nth-of-type(1) .small{font-size:14px}
-body > section:nth-of-type(4) label[for="playerUrl"],
-body > section:nth-of-type(4) #playerUrl,
-body > section:nth-of-type(4) button.dark[onclick="usePlaylistAddress()"],
-body > section:nth-of-type(4) button.green[onclick="addPlayingStreamToPlaylist()"]{display:none}
+/* Резервен вариант: позволява да се добави ръчно работещ HLS адрес */
 @media(max-width:520px){body{padding:10px}section{padding:12px}header{padding:17px}}
 </style>
 </head>
@@ -87,7 +84,7 @@ body > section:nth-of-type(4) button.green[onclick="addPlayingStreamToPlaylist()
 
 <section>
 <h2>▶️ Плеър</h2>
-<p class="small">Избери канал от общия списък и натисни „Пусни“. HTML плеърът възпроизвежда по един канал наведнъж; можеш да сменяш каналите от списъка.</p>
+<p class="small">Избери намерен поток и натисни „Пусни“. Ако автоматичното търсене не открие потоци, вземи директния видеоадрес чрез Web Video Caster и го постави в полето по-долу. Адресът трябва да е директен поток, обикновено завършващ на .m3u8; адресът на страницата не е достатъчен.</p>
 <label for="playlistChannel">Избери канал от намерените потоци</label>
 <select id="playlistChannel" onchange="useSelectedChannel()" style="width:100%;font:inherit;border:1px solid #c7d0df;border-radius:9px;padding:12px;margin:5px 0;background:#fff">
 <option value="">Първо намери каналите</option>
@@ -102,6 +99,7 @@ body > section:nth-of-type(4) button.green[onclick="addPlayingStreamToPlaylist()
 <div class="grid">
 <button id="playButton" onclick="playStream()">▶️ Отвори в плеъра</button>
 <button class="dark" onclick="usePlaylistAddress()">↙️ Вземи адреса от M3U полето</button>
+<button class="green" onclick="addPlayingStreamToPlaylist()">➕ Добави работещия поток в плейлиста</button>
 </div>
 <video id="streamPlayer" controls playsinline preload="none" style="width:100%;max-height:55vh;background:#090d15;border-radius:10px;margin-top:8px"></video>
 <div id="playerStatus" class="status" aria-live="polite"></div>
@@ -255,7 +253,7 @@ async function runAutoWorkflow() {
     status.textContent = "Стъпка 2/3: Сканирам намерените страници за публични видеоадреси...";
     await inspectChannels();
     if (!discoveredStreams.length) {
-      setMessage(status, "Намерени са страници на канали, но не и директни видеоадреси в публичния HTML. Нищо не е добавено към плейлиста.", "warn");
+      setMessage(status, "Намерени са страниците, но сайтът не показва директните потоци в публичния HTML. Това е нормално при плеър, зареждан от JavaScript. Постави работещ .m3u8 адрес в полето на плеъра по-долу, натисни „Отвори в плеъра“ и след като видеото тръгне натисни „Добави работещия поток в плейлиста“. ", "warn");
       return;
     }
     const textarea = document.getElementById("channels");
