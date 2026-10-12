@@ -38,6 +38,8 @@ export default async function handler(request, response) {
   ) {
     return response.status(403).json({
       ok: false,
+      httpOk: false,
+      verified: false,
       status: null,
       message: "Проверяват се само HTTPS адреси .m3u8/.mpd от разрешените CDN сървъри."
     });
@@ -52,19 +54,63 @@ export default async function handler(request, response) {
       redirect: "manual",
       signal: controller.signal,
       headers: {
-        Range: "bytes=0-0",
-        "User-Agent": "IPTV-Token-Manager/1.0"
+        Range: "bytes=0-4095",
+        "User-Agent": "IPTV-Token-Manager/1.1",
+        "Accept": "application/vnd.apple.mpegurl, application/x-mpegURL, application/dash+xml, */*"
       }
     });
 
     const status = result.status;
-    try {
-      await result.body?.cancel();
-    } catch {}
+    const httpOk = status >= 200 && status < 300;
+    const contentType = (result.headers.get("content-type") || "").toLowerCase();
+    let snippet = "";
+
+    // Read only a small prefix to identify a real HLS/DASH manifest.
+    if (httpOk && result.body) {
+      const reader = result.body.getReader();
+      const chunks = [];
+      let total = 0;
+      try {
+        while (total < 4096) {
+          const part = await reader.read();
+          if (part.done) break;
+          const remaining = 4096 - total;
+          const chunk = part.value.subarray(0, remaining);
+          chunks.push(chunk);
+          total += chunk.byteLength;
+          if (part.value.byteLength >= remaining) break;
+        }
+      } finally {
+        try { await reader.cancel(); } catch {}
+        try { reader.releaseLock(); } catch {}
+      }
+      const sample = new Uint8Array(total);
+      let offset = 0;
+      for (const chunk of chunks) {
+        sample.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      snippet = new TextDecoder("utf-8", { fatal: false }).decode(sample)
+        .replace(/^\uFEFF/, "")
+        .trimStart();
+    } else {
+      try { await result.body?.cancel(); } catch {}
+    }
+
+    let kind = null;
+    if (/^#EXTM3U\b/i.test(snippet)) {
+      kind = "HLS";
+    } else if (/<MPD(?:\s|>)/i.test(snippet)) {
+      kind = "DASH";
+    }
 
     let message;
-    if (status >= 200 && status < 300) {
-      message = "✅ Сървърът отговори успешно. Това не гарантира, че плеърът може да възпроизведе потока.";
+    if (kind === "HLS") {
+      message = "✅ Потвърден е HLS плейлист (#EXTM3U). Това потвърждава формата, но не гарантира непрекъснато възпроизвеждане.";
+    } else if (kind === "DASH") {
+      message = "✅ Потвърден е DASH плейлист (MPD). Това потвърждава формата, но не гарантира непрекъснато възпроизвеждане.";
+    } else if (httpOk) {
+      message = "⚠️ Сървърът отговори с HTTP " + status + ", но началото на съдържанието не потвърждава HLS/DASH плейлист. Адресът не се брои за потвърден.";
     } else if (status === 401 || status === 403) {
       message = "⛔ Достъпът е отказан (HTTP " + status + "). Токенът може да е изтекъл или потокът да е ограничен.";
     } else if (status >= 300 && status < 400) {
@@ -76,14 +122,20 @@ export default async function handler(request, response) {
     }
 
     return response.status(200).json({
-      ok: status >= 200 && status < 300,
+      ok: Boolean(kind),
+      httpOk,
+      verified: Boolean(kind),
+      kind,
       status,
       redirect: status >= 300 && status < 400,
+      contentType: contentType.slice(0, 100),
       message
     });
   } catch (error) {
     return response.status(200).json({
       ok: false,
+      httpOk: false,
+      verified: false,
       status: null,
       message: error.name === "AbortError"
         ? "Проверката изтече по време."
