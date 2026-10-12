@@ -89,6 +89,36 @@ module.exports = async function handler(req, res) {
 
     const pattern = /(?:https?:\/\/[^"'\s<>\\]+|\/\/[^"'\s<>\\]+|\/[^"'\s<>]+)\.(?:m3u8|mpd)(?:\?[^"'\s<>]*)?/gi;
     const matches = normalized.match(pattern) || [];
+
+    // Also inspect a small number of same-site JavaScript files. Some public pages
+    // keep player configuration in a script rather than inline HTML. This does not
+    // execute scripts, access cookies, or bypass player/DRM restrictions.
+    const scriptPaths = [];
+    const scriptPattern = /<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
+    let scriptMatch;
+    while ((scriptMatch = scriptPattern.exec(html)) && scriptPaths.length < 6) {
+      try {
+        const scriptUrl = new URL(scriptMatch[1], pageUrl);
+        if (scriptUrl.protocol === "https:" &&
+            scriptUrl.hostname === pageUrl.hostname &&
+            !scriptUrl.username && !scriptUrl.password &&
+            !scriptPaths.includes(scriptUrl.href)) scriptPaths.push(scriptUrl.href);
+      } catch {}
+    }
+    for (const scriptUrl of scriptPaths) {
+      try {
+        const scriptResponse = await fetch(scriptUrl, {
+          headers: {"User-Agent":"Mozilla/5.0 (compatible; IPTV-Token-Manager/1.0)", "Accept":"application/javascript,text/javascript,*/*"},
+          signal: AbortSignal.timeout(3500),
+          redirect: "error"
+        });
+        if (!scriptResponse.ok) continue;
+        const scriptType = (scriptResponse.headers.get("content-type") || "").toLowerCase();
+        if (scriptType && !/(javascript|ecmascript|text\/plain|octet-stream)/i.test(scriptType)) continue;
+        const scriptText = (await scriptResponse.text()).slice(0, 500000);
+        matches.push(...(scriptText.match(pattern) || []));
+      } catch {}
+    }
     const streams = [];
 
     for (const match of matches) {
