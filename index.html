@@ -57,10 +57,14 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 
 <section>
 <h2>2. 🔎 Потърси публични видеоадреси</h2>
-<p class="small">Проверява достъпния HTML код на намерените страници за адреси .m3u8 и .mpd. Ако сайтът зарежда плеъра отделно, блокира сървърни заявки или защитава потока, директният адрес може да не бъде открит.</p>
-<button id="inspectButton" class="orange" onclick="inspectChannels()">🔎 Провери страниците за видеоадреси</button>
+<p class="small">Търси само в публично достъпния HTML на намерените страници от GledaiTV.fan и GledaiTV.live. Показва намерените .m3u8/.mpd адреси, маркира вероятни токени и изчаква да избереш кои да добавиш. Не извлича данни от защитени плейъри и не заобикаля DRM или ограничения за достъп.</p>
+<div class="grid">
+<button id="inspectButton" class="orange" onclick="inspectChannels()">🔎 Сканирай страниците</button>
+<button class="dark" onclick="selectAllStreams(true)">☑️ Избери всички</button>
+<button class="dark" onclick="selectAllStreams(false)">⬜ Изчисти избора</button>
+</div>
 <div id="inspectResults" aria-live="polite"></div>
-<button class="dark" onclick="addFoundStreams()">➕ Добави намерените адреси в M3U полето</button>
+<button class="green" onclick="addSelectedStreams()">➕ Добави избраните в M3U</button>
 <div id="streamStatus" class="status" aria-live="polite"></div>
 </section>
 
@@ -325,6 +329,67 @@ async function copyFoundChannels() {
   }
 }
 
+function hasTokenParameters(url) {
+  return [...url.searchParams.keys()].some(key =>
+    /token|auth|signature|sig|expires|exp|jwt|key|hash|hdnea|policy|session/i.test(key)
+  );
+}
+
+function safeStreamLabel(value) {
+  const url = new URL(value);
+  const path = url.pathname.length > 72 ? "…" + url.pathname.slice(-69) : url.pathname;
+  return url.hostname + path + (url.search ? "?… (параметри скрити)" : "");
+}
+
+function renderDiscoveredStreams() {
+  const output = document.getElementById("inspectResults");
+  const summary = document.createElement("div");
+  summary.className = "card " + (discoveredStreams.length ? "good" : "warn");
+  summary.textContent = discoveredStreams.length
+    ? "Намерени са " + discoveredStreams.length + " уникални възможни видеоадреса. Избери кои да добавиш."
+    : "Не са открити директни видеоадреси в публично достъпния HTML. Плеърът може да се зарежда отделно или да изисква разрешен достъп.";
+  output.prepend(summary);
+
+  discoveredStreams.forEach((item, index) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    const label = document.createElement("label");
+    label.style.display = "flex";
+    label.style.alignItems = "flex-start";
+    label.style.gap = "10px";
+    label.style.fontWeight = "400";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = false;
+    checkbox.dataset.streamIndex = String(index);
+    checkbox.style.width = "auto";
+    checkbox.style.margin = "3px 0 0";
+    const details = document.createElement("div");
+    details.style.minWidth = "0";
+    details.style.flex = "1";
+    const title = document.createElement("b");
+    title.textContent = item.name || "Видео поток";
+    const address = document.createElement("div");
+    address.className = "small";
+    address.textContent = safeStreamLabel(item.url);
+    const meta = document.createElement("div");
+    meta.className = "small";
+    const tokenized = hasTokenParameters(new URL(item.url));
+    meta.textContent = tokenized
+      ? "🔑 Вероятно има токен/подпис в URL параметрите (стойностите са скрити)."
+      : "ℹ️ Не са разпознати очевидни параметри за токен.";
+    details.append(title, address, meta);
+    label.append(checkbox, details);
+    card.appendChild(label);
+    output.appendChild(card);
+  });
+}
+
+function selectAllStreams(checked) {
+  document.querySelectorAll('#inspectResults input[type="checkbox"][data-stream-index]')
+    .forEach(input => { input.checked = checked; });
+}
+
 async function inspectChannels() {
   const button = document.getElementById("inspectButton");
   const output = document.getElementById("inspectResults");
@@ -334,7 +399,7 @@ async function inspectChannels() {
   discoveredStreams = [];
 
   if (!discoveredChannels.length) {
-    setMessage(output, "Първо намери списъка с канали.", "warn");
+    setMessage(output, "Първо натисни „Намери всички канали“ за GledaiTV.fan или GledaiTV.live.", "warn");
     return;
   }
 
@@ -355,7 +420,7 @@ async function inspectChannels() {
       const title = document.createElement("b");
       title.textContent = channel.name || "Телевизионен канал";
       const message = document.createElement("p");
-      message.textContent = "Търся публични адреси...";
+      message.textContent = "Търся адреси в публично достъпния HTML...";
       card.append(title, message);
       output.appendChild(card);
 
@@ -371,18 +436,12 @@ async function inspectChannels() {
         for (const value of streams) {
           let parsed;
           try { parsed = new URL(value); } catch { continue; }
-          if (!["https:", "http:"].includes(parsed.protocol) ||
-              !/\.(m3u8|mpd)$/i.test(parsed.pathname)) continue;
+          if (parsed.protocol !== "https:" ||
+              !/\.(m3u8|mpd)$/i.test(parsed.pathname) ||
+              parsed.username || parsed.password) continue;
           if (!discoveredStreams.some(item => item.url === parsed.href)) {
             discoveredStreams.push({name: channel.name || "Телевизия", url: parsed.href});
           }
-          const link = document.createElement("a");
-          link.href = parsed.href;
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          link.className = "status";
-          link.textContent = "🔗 " + parsed.href;
-          card.appendChild(link);
         }
         if (streams.length) card.classList.add("good");
       } catch {
@@ -391,30 +450,35 @@ async function inspectChannels() {
       completed++;
       button.textContent = "⏳ Проверени " + completed + " от " + limit;
     }
-    const summary = document.createElement("div");
-    summary.className = "card " + (discoveredStreams.length ? "good" : "warn");
-    summary.textContent = discoveredStreams.length
-      ? "Намерени са " + discoveredStreams.length + " уникални възможни видеоадреса."
-      : "Не са открити директни видеоадреси в достъпния HTML. Плеърът може да се зарежда отделно или да изисква достъп.";
-    output.prepend(summary);
-    status.textContent = "Проверени страници: " + completed + ". Намерени видеоадреси: " + discoveredStreams.length + ".";
+    renderDiscoveredStreams();
+    status.textContent = "Проверени страници: " + completed + ". Намерени адреси: " + discoveredStreams.length + ". Нищо не е добавено, докато не избереш резултати.";
   } finally {
     button.disabled = false;
-    button.textContent = "🔎 Провери страниците за видеоадреси";
+    button.textContent = "🔎 Сканирай страниците";
   }
 }
 
-function addFoundStreams() {
+function addSelectedStreams() {
   const status = document.getElementById("streamStatus");
   const textarea = document.getElementById("channels");
-  if (!discoveredStreams.length) {
-    status.textContent = "Няма намерени видеоадреси за добавяне.";
+  const selected = [...document.querySelectorAll('#inspectResults input[type="checkbox"][data-stream-index]:checked')]
+    .map(input => discoveredStreams[Number(input.dataset.streamIndex)])
+    .filter(Boolean);
+  if (!selected.length) {
+    status.textContent = "Избери поне един адрес от резултатите, преди да го добавиш.";
     return;
   }
-  const existing = textarea.value.trim();
-  const additions = discoveredStreams.map(item => item.name + " | " + item.url).join("\n");
-  textarea.value = existing ? existing + "\n" + additions : additions;
-  status.textContent = "✅ Добавени са " + discoveredStreams.length + " възможни видеоадреса.";
+  const existing = getChannels();
+  const additions = selected.filter(item => !existing.some(channel => channel.url === item.url));
+  if (!additions.length) {
+    status.textContent = "Избраните адреси вече са в M3U полето.";
+    return;
+  }
+  const prefix = textarea.value.trim();
+  textarea.value = prefix
+    ? prefix + "\n" + additions.map(item => item.name + " | " + item.url).join("\n")
+    : additions.map(item => item.name + " | " + item.url).join("\n");
+  status.textContent = "✅ Добавени са " + additions.length + " избрани адреса в M3U полето. Провери ги и натисни „Изтегли M3U“.";
 }
 
 function getChannels() {
