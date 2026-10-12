@@ -39,7 +39,12 @@ export default async function handler(req, res) {
       });
 
       if (!response.ok) {
-        errors.push(category.name + ": HTTP " + response.status);
+        errors.push(
+          category.name + ": HTTP " + response.status +
+          (response.status === 403
+            ? " — достъпът е отказан от сайта"
+            : " — заявката не е успешна")
+        );
         continue;
       }
 
