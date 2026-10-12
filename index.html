@@ -42,6 +42,7 @@ button:disabled {
 .search { background: #7045d6; }
 .check { background: #198754; }
 .copy { background: #087f8c; }
+.inspect { background: #e87516; }
 .clear { background: #555; }
 .result {
   background: white;
@@ -64,9 +65,28 @@ button:disabled {
   border-radius: 8px;
   font-size: 14px;
 }
+.success {
+  background: #d1e7dd;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.warning {
+  background: #fff3cd;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
 a { overflow-wrap: anywhere; }
 .status {
   padding: 10px;
+  overflow-wrap: anywhere;
+}
+.stream-url {
+  display: block;
+  margin-top: 8px;
   overflow-wrap: anywhere;
 }
 </style>
@@ -77,8 +97,8 @@ a { overflow-wrap: anywhere; }
 <h1>📺 IPTV Token Manager</h1>
 
 <p>
-Намиране на телевизионни канали по категории,
-копиране на списъка и създаване на M3U плейлист.
+Намиране на телевизионни канали, търсене на директни
+видеоадреси и създаване на M3U плейлист.
 </p>
 
 <label><b>1. Намери каналите</b></label>
@@ -104,6 +124,37 @@ a { overflow-wrap: anywhere; }
 
 <hr>
 
+<h3>🔎 Търсене на директни видеоадреси</h3>
+
+<p>
+След като намериш каналите, натисни бутона по-долу.
+Програмата ще провери достъпния HTML код на всяка намерена
+страница за публично посочени видеоадреси.
+</p>
+
+<button
+  type="button"
+  class="inspect"
+  id="inspectButton"
+  onclick="inspectChannels()"
+>
+🔎 Намери видеоадреси в каналите
+</button>
+
+<div id="inspectResults" aria-live="polite"></div>
+
+<button
+  type="button"
+  class="copy"
+  onclick="addFoundStreams()"
+>
+➕ Добави намерените адреси в M3U полето
+</button>
+
+<div id="streamStatus" class="status" aria-live="polite"></div>
+
+<hr>
+
 <h3>📃 Създаване на M3U плейлист</h3>
 
 <label><b>2. Име на плейлиста</b></label>
@@ -113,8 +164,8 @@ a { overflow-wrap: anywhere; }
 <label><b>3. Директни видеоадреси</b></label>
 
 <p>
-Въведи директни видеоадреси, които имаш право да използваш.
-Форматът е Име | URL.
+Всеки ред трябва да бъде във формат:
+Име на канала | директен видеоадрес.
 </p>
 
 <textarea
@@ -138,22 +189,28 @@ a { overflow-wrap: anywhere; }
 
 <div class="note">
 <b>Важно:</b> Страниците на каналите не са непременно
-директни видео потоци. За работещ M3U плейлист са необходими
-съвместими видеоадреси с разрешен достъп.
+директни видео потоци. Новата функция търси адреси,
+които вече присъстват в достъпния HTML код.
+Ако потокът се зарежда динамично, изисква специален достъп
+или е защитен, програмата може да не го открие.
 </div>
 
 <script>
 let discoveredChannels = [];
+let discoveredStreams = [];
 
 async function discover() {
   const input = document.getElementById("siteUrl");
   const found = document.getElementById("found");
   const button = document.getElementById("discoverButton");
-  const copyStatus = document.getElementById("copyStatus");
 
   found.replaceChildren();
-  copyStatus.textContent = "";
+  document.getElementById("copyStatus").textContent = "";
+  document.getElementById("inspectResults").replaceChildren();
+  document.getElementById("streamStatus").textContent = "";
+
   discoveredChannels = [];
+  discoveredStreams = [];
 
   let page;
 
@@ -201,6 +258,7 @@ async function discover() {
     discoveredChannels = data.links.filter(item => {
       try {
         const url = new URL(item.url);
+
         return (
           ["gledaitv.live", "www.gledaitv.live"].includes(url.hostname) &&
           /^\/watch-tv\/\d+\//i.test(url.pathname)
@@ -213,6 +271,7 @@ async function discover() {
     const heading = document.createElement("h3");
     heading.textContent =
       "📺 Намерени страници: " + discoveredChannels.length;
+
     found.appendChild(heading);
 
     discoveredChannels.forEach(item => {
@@ -235,6 +294,7 @@ async function discover() {
       card.appendChild(category);
       card.appendChild(name);
       card.appendChild(link);
+
       found.appendChild(card);
     });
 
@@ -243,6 +303,7 @@ async function discover() {
       warning.textContent =
         "Някои категории не можаха да бъдат прочетени: " +
         data.errors.join("; ");
+
       found.appendChild(warning);
     }
 
@@ -270,6 +331,7 @@ async function copyFoundChannels() {
 
   try {
     await navigator.clipboard.writeText(text);
+
     status.textContent =
       "✅ Копирани са " + discoveredChannels.length +
       " страници на канали.";
@@ -278,6 +340,7 @@ async function copyFoundChannels() {
     area.value = text;
     area.style.position = "fixed";
     area.style.opacity = "1";
+
     document.body.appendChild(area);
     area.focus();
     area.select();
@@ -289,6 +352,178 @@ async function copyFoundChannels() {
       ? "✅ Списъкът е копиран."
       : "Неуспешно копиране. Опитай през HTTPS браузър.";
   }
+}
+
+async function inspectChannels() {
+  const button = document.getElementById("inspectButton");
+  const output = document.getElementById("inspectResults");
+  const status = document.getElementById("streamStatus");
+
+  output.replaceChildren();
+  status.textContent = "";
+  discoveredStreams = [];
+
+  if (!discoveredChannels.length) {
+    output.textContent =
+      "Първо натисни „Намери всички канали“.";
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "⏳ Проверявам страниците...";
+
+  const heading = document.createElement("h3");
+  heading.textContent = "Резултати от търсенето";
+  output.appendChild(heading);
+
+  let completed = 0;
+
+  try {
+    for (const channel of discoveredChannels) {
+      const card = document.createElement("div");
+      card.className = "result";
+
+      const title = document.createElement("b");
+      title.textContent = channel.name || "Телевизионен канал";
+
+      const message = document.createElement("p");
+      message.textContent = "Търся видеоадреси...";
+
+      card.appendChild(title);
+      card.appendChild(message);
+      output.appendChild(card);
+
+      try {
+        const response = await fetch("/api/inspect", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ url: channel.url })
+        });
+
+        const data = await response.json();
+
+        message.textContent = data.message || "Проверката приключи.";
+
+        if (
+          response.ok &&
+          data.ok &&
+          Array.isArray(data.streams) &&
+          data.streams.length
+        ) {
+          const validStreams = [];
+
+          for (const stream of data.streams) {
+            try {
+              const parsed = new URL(stream);
+
+              if (
+                ["https:", "http:"].includes(parsed.protocol) &&
+                /\.(m3u8|mpd)(?:$|\?)/i.test(
+                  parsed.pathname + parsed.search
+                )
+              ) {
+                validStreams.push(parsed.href);
+              }
+            } catch {
+              // Пропускаме невалидните адреси.
+            }
+          }
+
+          for (const stream of validStreams) {
+            const exists = discoveredStreams.some(
+              item => item.url === stream
+            );
+
+            if (!exists) {
+              discoveredStreams.push({
+                name: channel.name || "Телевизионен канал",
+                url: stream
+              });
+            }
+
+            const link = document.createElement("a");
+            link.className = "stream-url";
+            link.href = stream;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = "🔗 " + stream;
+
+            card.appendChild(link);
+          }
+
+          if (validStreams.length) {
+            card.classList.add("success");
+            message.textContent =
+              "✅ Открити са " + validStreams.length +
+              " възможни видеоадреса. Това не гарантира, че потокът работи.";
+          }
+        }
+      } catch {
+        message.textContent =
+          "Грешка при заявката. Провери дали API функцията е публикувана.";
+      }
+
+      completed++;
+
+      button.textContent =
+        "⏳ Проверени " + completed +
+        " от " + discoveredChannels.length;
+
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+
+    const summary = document.createElement("div");
+
+    if (discoveredStreams.length) {
+      summary.className = "success";
+      summary.textContent =
+        "✅ Намерени са " + discoveredStreams.length +
+        " уникални възможни видеоадреса.";
+    } else {
+      summary.className = "warning";
+      summary.textContent =
+        "Не бяха открити директни видеоадреси. " +
+        "Възможно е плеърът да ги зарежда динамично или " +
+        "сайтът да не позволява достъп до тях.";
+    }
+
+    output.prepend(summary);
+
+    status.textContent =
+      "Проверени страници: " + completed +
+      ". Намерени видеоадреси: " + discoveredStreams.length + ".";
+
+  } finally {
+    button.disabled = false;
+    button.textContent = "🔎 Намери видеоадреси в каналите";
+  }
+}
+
+function addFoundStreams() {
+  const status = document.getElementById("streamStatus");
+  const textarea = document.getElementById("channels");
+
+  if (!discoveredStreams.length) {
+    status.textContent =
+      "Няма намерени видеоадреси за добавяне.";
+    return;
+  }
+
+  const existing = textarea.value.trim();
+
+  const additions = discoveredStreams.map(item =>
+    item.name + " | " + item.url
+  ).join("\n");
+
+  textarea.value = existing
+    ? existing + "\n" + additions
+    : additions;
+
+  status.textContent =
+    "✅ Добавени са " + discoveredStreams.length +
+    " възможни видеоадреса. Провери ги преди създаване на плейлиста.";
 }
 
 function getChannels() {
@@ -322,6 +557,7 @@ function getChannels() {
 
 function generate() {
   const channels = getChannels();
+
   const playlistName =
     document.getElementById("playlistName").value.trim()
     || "Bulgarian TV";
@@ -404,7 +640,11 @@ function clearForm() {
     document.getElementById("results").replaceChildren();
     document.getElementById("found").replaceChildren();
     document.getElementById("copyStatus").textContent = "";
+    document.getElementById("inspectResults").replaceChildren();
+    document.getElementById("streamStatus").textContent = "";
+
     discoveredChannels = [];
+    discoveredStreams = [];
   }
 }
 </script>
