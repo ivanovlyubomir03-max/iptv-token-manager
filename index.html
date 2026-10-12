@@ -1,315 +1,208 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="bg">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#14213d">
 <title>IPTV Token Manager</title>
-
 <style>
-body {
-  font-family: Arial, sans-serif;
-  max-width: 750px;
-  margin: 20px auto;
-  padding: 15px;
-  background: #f2f4f7;
-  color: #222;
-}
-h1 { font-size: 25px; }
-input, textarea, button {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 12px;
-  margin: 7px 0;
-  border-radius: 8px;
-  font-size: 16px;
-}
-input, textarea {
-  border: 1px solid #bbb;
-  background: white;
-}
-textarea { height: 160px; }
-button {
-  border: 0;
-  background: #1769e0;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-button:disabled {
-  opacity: .6;
-  cursor: wait;
-}
-.search { background: #7045d6; }
-.check { background: #198754; }
-.copy { background: #087f8c; }
-.inspect { background: #e87516; }
-.clear { background: #555; }
-.result {
-  background: white;
-  padding: 12px;
-  border-radius: 8px;
-  margin: 8px 0;
-  overflow-wrap: anywhere;
-}
-.category {
-  display: inline-block;
-  background: #e9e2ff;
-  padding: 5px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  margin-bottom: 7px;
-}
-.note {
-  background: #fff3cd;
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 14px;
-}
-.success {
-  background: #d1e7dd;
-  padding: 12px;
-  border-radius: 8px;
-  margin: 8px 0;
-  overflow-wrap: anywhere;
-}
-.warning {
-  background: #fff3cd;
-  padding: 12px;
-  border-radius: 8px;
-  margin: 8px 0;
-  overflow-wrap: anywhere;
-}
-a { overflow-wrap: anywhere; }
-.status {
-  padding: 10px;
-  overflow-wrap: anywhere;
-}
-.stream-url {
-  display: block;
-  margin-top: 8px;
-  overflow-wrap: anywhere;
-}
+:root{font-family:Arial,Helvetica,sans-serif;color:#192238;background:#eef2f8}
+*{box-sizing:border-box}
+body{max-width:980px;margin:0 auto;padding:16px}
+header{background:#14213d;color:#fff;padding:22px;border-radius:16px;margin-bottom:16px}
+h1{font-size:clamp(24px,5vw,34px);margin:0 0 8px}
+header p{margin:0;line-height:1.5;color:#e7edf9}
+section{background:#fff;border:1px solid #dce3ee;border-radius:14px;padding:16px;margin:14px 0}
+h2{font-size:20px;margin:0 0 12px}
+h3{margin:10px 0}
+label{display:block;font-weight:700;margin:12px 0 5px}
+input,textarea,button{width:100%;font:inherit;border-radius:9px;padding:12px;margin:5px 0}
+input,textarea{border:1px solid #c7d0df;background:#fff;color:#172033}
+textarea{min-height:145px;resize:vertical}
+button{border:0;background:#1769e0;color:white;font-weight:700;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+button.secondary{background:#6650b8}
+button.green{background:#168258}
+button.dark{background:#455064}
+button.orange{background:#c96812}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.card{border:1px solid #dce3ee;border-radius:10px;padding:12px;margin:8px 0;overflow-wrap:anywhere}
+.status{padding:10px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.good{background:#e5f6ed;border-color:#b8e6cc}
+.warn{background:#fff4db;border-color:#f1d99b}
+.small{font-size:13px;line-height:1.45;color:#576277}
+.badge{display:inline-block;background:#e9e5ff;color:#4d3a92;border-radius:6px;padding:4px 7px;font-size:12px}
+a{overflow-wrap:anywhere}
+hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
+@media(max-width:520px){body{padding:10px}section{padding:12px}header{padding:17px}}
 </style>
 </head>
-
 <body>
-
+<header>
 <h1>📺 IPTV Token Manager</h1>
+<p>Намери страници на български канали, провери публично видими видеоадреси и създай M3U плейлист.</p>
+</header>
 
-<p>
-Намиране на телевизионни канали, търсене на директни
-видеоадреси и създаване на M3U плейлист.
-</p>
-
-<label><b>1. Намери каналите</b></label>
-
-<input
-  id="siteUrl"
-  type="url"
-  value="https://www.gledaitv.live/"
-  placeholder="https://www.gledaitv.live/"
->
-
-<button class="search" id="discoverButton" onclick="discover()">
-🔍 Намери всички канали
-</button>
-
-<div id="found" aria-live="polite"></div>
-
-<button type="button" class="copy" onclick="copyFoundChannels()">
-📋 Копирай списъка с каналите
-</button>
-
-<div id="copyStatus" class="status" aria-live="polite"></div>
-
-<hr>
-
-<h3>🔎 Търсене на директни видеоадреси</h3>
-
-<p>
-След като намериш каналите, натисни бутона по-долу.
-Програмата ще провери достъпния HTML код на всяка намерена
-страница за публично посочени видеоадреси.
-</p>
-
-<button
-  type="button"
-  class="inspect"
-  id="inspectButton"
-  onclick="inspectChannels()"
->
-🔎 Намери видеоадреси в каналите
-</button>
-
-<div id="inspectResults" aria-live="polite"></div>
-
-<button
-  type="button"
-  class="copy"
-  onclick="addFoundStreams()"
->
-➕ Добави намерените адреси в M3U полето
-</button>
-
-<div id="streamStatus" class="status" aria-live="polite"></div>
-
-<hr>
-
-<h3>📃 Създаване на M3U плейлист</h3>
-
-<label><b>2. Име на плейлиста</b></label>
-
-<input id="playlistName" value="Bulgarian TV">
-
-<label><b>3. Директни видеоадреси</b></label>
-
-<p>
-Всеки ред трябва да бъде във формат:
-Име на канала | директен видеоадрес.
-</p>
-
-<textarea
-  id="channels"
-  placeholder="NOVA TV | https://example.com/public-stream.m3u8"
-></textarea>
-
-<button onclick="generate()">
-⬇️ Изтегли M3U плейлист
-</button>
-
-<button class="check" onclick="checkChannels()">
-✅ Провери видеоадресите
-</button>
-
-<button class="clear" onclick="clearForm()">
-Изчисти полетата
-</button>
-
-<div id="results" aria-live="polite"></div>
-
-<div class="note">
-<b>Важно:</b> Страниците на каналите не са непременно
-директни видео потоци. Новата функция търси адреси,
-които вече присъстват в достъпния HTML код.
-Ако потокът се зарежда динамично, изисква специален достъп
-или е защитен, програмата може да не го открие.
+<section>
+<h2>1. 🔍 Намери каналите</h2>
+<label for="siteUrl">Източник</label>
+<input id="siteUrl" type="url" value="https://www.gledaitv.fan/bulgaria-tv-channels.html" placeholder="https://www.gledaitv.fan/bulgaria-tv-channels.html">
+<div class="grid">
+<button id="discoverButton" class="secondary" onclick="discover()">🔍 Намери всички канали</button>
+<button class="dark" onclick="copyFoundChannels()">📋 Копирай списъка</button>
 </div>
+<div id="found" aria-live="polite"></div>
+<div id="copyStatus" class="status" aria-live="polite"></div>
+</section>
+
+<section>
+<h2>2. 🔎 Потърси публични видеоадреси</h2>
+<p class="small">Проверява достъпния HTML код на намерените страници за адреси .m3u8 и .mpd. Ако сайтът зарежда плеъра отделно, блокира сървърни заявки или защитава потока, директният адрес може да не бъде открит.</p>
+<button id="inspectButton" class="orange" onclick="inspectChannels()">🔎 Провери страниците за видеоадреси</button>
+<div id="inspectResults" aria-live="polite"></div>
+<button class="dark" onclick="addFoundStreams()">➕ Добави намерените адреси в M3U полето</button>
+<div id="streamStatus" class="status" aria-live="polite"></div>
+</section>
+
+<section>
+<h2>3. 📃 Създай M3U плейлист</h2>
+<label for="playlistName">Име на плейлиста</label>
+<input id="playlistName" value="Bulgarian TV">
+<label for="channels">Канали — по един на ред във формат „Име | URL“</label>
+<textarea id="channels" placeholder="NOVA TV | https://example.com/live.m3u8"></textarea>
+<div class="grid">
+<button onclick="generate()">⬇️ Изтегли M3U</button>
+<button class="green" onclick="checkChannels()">✅ Провери адресите</button>
+<button class="dark" onclick="clearForm()">Изчисти полетата</button>
+</div>
+<div id="results" aria-live="polite"></div>
+</section>
+
+<section class="warn">
+<b>Важно за токените:</b> приложението може да провери дали даден адрес отговаря, но не може само да поднови изтекъл токен. Автоматично обновяване е възможно само ако източникът предлага разрешен начин за получаване на нов адрес. Не се заобикалят DRM, вход или други защити.
+</section>
 
 <script>
 let discoveredChannels = [];
 let discoveredStreams = [];
 
+function validChannelPage(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return false;
+    if (["gledaitv.live", "www.gledaitv.live"].includes(url.hostname)) {
+      return /^\/watch-tv\/\d+\/?/i.test(url.pathname);
+    }
+    if (["gledaitv.fan", "www.gledaitv.fan"].includes(url.hostname)) {
+      return url.pathname === "/" ||
+        /^\/bulgaria-tv-channels\.html$/i.test(url.pathname) ||
+        /^[\/][a-z0-9-]+-live-tv\.html$/i.test(url.pathname);
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function channelUrlAllowed(value, source) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return false;
+    if (source === "fan") {
+      return ["gledaitv.fan", "www.gledaitv.fan"].includes(url.hostname) &&
+        /^[\/][a-z0-9-]+-live-tv\.html$/i.test(url.pathname);
+    }
+    return ["gledaitv.live", "www.gledaitv.live"].includes(url.hostname) &&
+      /^\/watch-tv\/\d+\//i.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+function setMessage(container, message, kind) {
+  container.replaceChildren();
+  const box = document.createElement("div");
+  box.className = "card " + (kind || "");
+  box.textContent = message;
+  container.appendChild(box);
+}
+
 async function discover() {
   const input = document.getElementById("siteUrl");
   const found = document.getElementById("found");
   const button = document.getElementById("discoverButton");
-
-  found.replaceChildren();
-  document.getElementById("copyStatus").textContent = "";
-  document.getElementById("inspectResults").replaceChildren();
-  document.getElementById("streamStatus").textContent = "";
-
+  const copyStatus = document.getElementById("copyStatus");
+  const inspectResults = document.getElementById("inspectResults");
+  const streamStatus = document.getElementById("streamStatus");
   discoveredChannels = [];
   discoveredStreams = [];
+  found.replaceChildren();
+  copyStatus.textContent = "";
+  inspectResults.replaceChildren();
+  streamStatus.textContent = "";
 
   let page;
-
   try {
     page = new URL(input.value.trim());
   } catch {
-    found.textContent = "Въведи валиден адрес.";
+    setMessage(found, "Въведи валиден HTTPS адрес.", "warn");
     return;
   }
 
-  if (
-    page.protocol !== "https:" ||
-    !["gledaitv.live", "www.gledaitv.live"].includes(page.hostname)
-  ) {
-    found.textContent = "Въведи HTTPS адрес от gledaitv.live.";
+  if (!validChannelPage(page.href)) {
+    setMessage(found, "Поддържат се страниците gledaitv.live/watch-tv/... и gledaitv.fan/bulgaria-tv-channels.html или отделна страница на канал.", "warn");
     return;
   }
 
+  const isFan = ["gledaitv.fan", "www.gledaitv.fan"].includes(page.hostname);
   button.disabled = true;
   button.textContent = "⏳ Търся каналите...";
-
   try {
-    const response = await fetch("/api/discover", {
+    const endpoint = isFan ? "/api/discover-fan" : "/api/discover";
+    const response = await fetch(endpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ url: page.href })
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({url: page.href})
     });
-
     const data = await response.json();
-
-    const message = document.createElement("p");
-    message.textContent = data.message || "Търсенето приключи.";
-    found.appendChild(message);
-
     if (!response.ok || !data.ok) {
+      setMessage(found, data.message || "Търсенето не успя.", "warn");
       return;
     }
 
-    if (!Array.isArray(data.links) || data.links.length === 0) {
-      return;
-    }
+    discoveredChannels = (Array.isArray(data.links) ? data.links : [])
+      .filter(item => channelUrlAllowed(item.url, isFan ? "fan" : "live"));
 
-    discoveredChannels = data.links.filter(item => {
-      try {
-        const url = new URL(item.url);
+    const summary = document.createElement("div");
+    summary.className = "card good";
+    summary.textContent = "✅ Намерени страници на канали: " + discoveredChannels.length;
+    found.appendChild(summary);
 
-        return (
-          ["gledaitv.live", "www.gledaitv.live"].includes(url.hostname) &&
-          /^\/watch-tv\/\d+\//i.test(url.pathname)
-        );
-      } catch {
-        return false;
-      }
-    });
-
-    const heading = document.createElement("h3");
-    heading.textContent =
-      "📺 Намерени страници: " + discoveredChannels.length;
-
-    found.appendChild(heading);
-
-    discoveredChannels.forEach(item => {
+    for (const item of discoveredChannels) {
       const card = document.createElement("div");
-      card.className = "result";
-
-      const category = document.createElement("div");
-      category.className = "category";
-      category.textContent = item.category || "Телевизия";
-
+      card.className = "card";
+      const tag = document.createElement("span");
+      tag.className = "badge";
+      tag.textContent = item.category || "Телевизия";
       const name = document.createElement("h3");
       name.textContent = item.name || "Телевизионен канал";
-
       const link = document.createElement("a");
       link.href = item.url;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       link.textContent = "📺 Отвори страницата на канала";
-
-      card.appendChild(category);
-      card.appendChild(name);
-      card.appendChild(link);
-
+      card.append(tag, name, link);
       found.appendChild(card);
-    });
-
-    if (Array.isArray(data.errors) && data.errors.length) {
-      const warning = document.createElement("p");
-      warning.textContent =
-        "Някои категории не можаха да бъдат прочетени: " +
-        data.errors.join("; ");
-
-      found.appendChild(warning);
     }
 
+    if (Array.isArray(data.errors) && data.errors.length) {
+      const details = document.createElement("div");
+      details.className = "card warn";
+      details.textContent = "Част от страниците не са достъпни: " + data.errors.join("; ");
+      found.appendChild(details);
+    }
   } catch {
-    found.textContent =
-      "Грешка при свързването. Провери API файла във Vercel.";
+    setMessage(found, "Грешка при връзката с API. Провери дали последното публикуване във Vercel е завършило успешно.", "warn");
   } finally {
     button.disabled = false;
     button.textContent = "🔍 Намери всички канали";
@@ -318,39 +211,24 @@ async function discover() {
 
 async function copyFoundChannels() {
   const status = document.getElementById("copyStatus");
-
   if (!discoveredChannels.length) {
-    status.textContent =
-      "Първо натисни „Намери всички канали“.";
+    status.textContent = "Първо натисни „Намери всички канали“.";
     return;
   }
-
   const text = discoveredChannels.map(item =>
     (item.name || "Телевизионен канал") + " | " + item.url
   ).join("\n");
-
   try {
     await navigator.clipboard.writeText(text);
-
-    status.textContent =
-      "✅ Копирани са " + discoveredChannels.length +
-      " страници на канали.";
+    status.textContent = "✅ Копирани са " + discoveredChannels.length + " страници.";
   } catch {
     const area = document.createElement("textarea");
     area.value = text;
-    area.style.position = "fixed";
-    area.style.opacity = "1";
-
     document.body.appendChild(area);
-    area.focus();
     area.select();
-
     const success = document.execCommand("copy");
     area.remove();
-
-    status.textContent = success
-      ? "✅ Списъкът е копиран."
-      : "Неуспешно копиране. Опитай през HTTPS браузър.";
+    status.textContent = success ? "✅ Списъкът е копиран." : "Неуспешно копиране.";
   }
 }
 
@@ -358,296 +236,179 @@ async function inspectChannels() {
   const button = document.getElementById("inspectButton");
   const output = document.getElementById("inspectResults");
   const status = document.getElementById("streamStatus");
-
   output.replaceChildren();
   status.textContent = "";
   discoveredStreams = [];
 
   if (!discoveredChannels.length) {
-    output.textContent =
-      "Първо натисни „Намери всички канали“.";
+    setMessage(output, "Първо намери списъка с канали.", "warn");
     return;
   }
 
+  const limit = Math.min(discoveredChannels.length, 25);
+  if (discoveredChannels.length > limit) {
+    const note = document.createElement("div");
+    note.className = "card warn";
+    note.textContent = "За да избегнем прекалено дълга проверка, сега се проверяват първите 25 канала от " + discoveredChannels.length + ".";
+    output.appendChild(note);
+  }
+
   button.disabled = true;
-  button.textContent = "⏳ Проверявам страниците...";
-
-  const heading = document.createElement("h3");
-  heading.textContent = "Резултати от търсенето";
-  output.appendChild(heading);
-
   let completed = 0;
-
   try {
-    for (const channel of discoveredChannels) {
+    for (const channel of discoveredChannels.slice(0, limit)) {
       const card = document.createElement("div");
-      card.className = "result";
-
+      card.className = "card";
       const title = document.createElement("b");
       title.textContent = channel.name || "Телевизионен канал";
-
       const message = document.createElement("p");
-      message.textContent = "Търся видеоадреси...";
-
-      card.appendChild(title);
-      card.appendChild(message);
+      message.textContent = "Търся публични адреси...";
+      card.append(title, message);
       output.appendChild(card);
 
       try {
         const response = await fetch("/api/inspect", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ url: channel.url })
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({url: channel.url})
         });
-
         const data = await response.json();
-
         message.textContent = data.message || "Проверката приключи.";
-
-        if (
-          response.ok &&
-          data.ok &&
-          Array.isArray(data.streams) &&
-          data.streams.length
-        ) {
-          const validStreams = [];
-
-          for (const stream of data.streams) {
-            try {
-              const parsed = new URL(stream);
-
-              if (
-                ["https:", "http:"].includes(parsed.protocol) &&
-                /\.(m3u8|mpd)(?:$|\?)/i.test(
-                  parsed.pathname + parsed.search
-                )
-              ) {
-                validStreams.push(parsed.href);
-              }
-            } catch {
-              // Пропускаме невалидните адреси.
-            }
+        const streams = Array.isArray(data.streams) ? data.streams : [];
+        for (const value of streams) {
+          let parsed;
+          try { parsed = new URL(value); } catch { continue; }
+          if (!["https:", "http:"].includes(parsed.protocol) ||
+              !/\.(m3u8|mpd)$/i.test(parsed.pathname)) continue;
+          if (!discoveredStreams.some(item => item.url === parsed.href)) {
+            discoveredStreams.push({name: channel.name || "Телевизия", url: parsed.href});
           }
-
-          for (const stream of validStreams) {
-            const exists = discoveredStreams.some(
-              item => item.url === stream
-            );
-
-            if (!exists) {
-              discoveredStreams.push({
-                name: channel.name || "Телевизионен канал",
-                url: stream
-              });
-            }
-
-            const link = document.createElement("a");
-            link.className = "stream-url";
-            link.href = stream;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-            link.textContent = "🔗 " + stream;
-
-            card.appendChild(link);
-          }
-
-          if (validStreams.length) {
-            card.classList.add("success");
-            message.textContent =
-              "✅ Открити са " + validStreams.length +
-              " възможни видеоадреса. Това не гарантира, че потокът работи.";
-          }
+          const link = document.createElement("a");
+          link.href = parsed.href;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.className = "status";
+          link.textContent = "🔗 " + parsed.href;
+          card.appendChild(link);
         }
+        if (streams.length) card.classList.add("good");
       } catch {
-        message.textContent =
-          "Грешка при заявката. Провери дали API функцията е публикувана.";
+        message.textContent = "Заявката не успя или сървърът отказа достъп.";
       }
-
       completed++;
-
-      button.textContent =
-        "⏳ Проверени " + completed +
-        " от " + discoveredChannels.length;
-
-      await new Promise(resolve => setTimeout(resolve, 150));
+      button.textContent = "⏳ Проверени " + completed + " от " + limit;
     }
-
     const summary = document.createElement("div");
-
-    if (discoveredStreams.length) {
-      summary.className = "success";
-      summary.textContent =
-        "✅ Намерени са " + discoveredStreams.length +
-        " уникални възможни видеоадреса.";
-    } else {
-      summary.className = "warning";
-      summary.textContent =
-        "Не бяха открити директни видеоадреси. " +
-        "Възможно е плеърът да ги зарежда динамично или " +
-        "сайтът да не позволява достъп до тях.";
-    }
-
+    summary.className = "card " + (discoveredStreams.length ? "good" : "warn");
+    summary.textContent = discoveredStreams.length
+      ? "Намерени са " + discoveredStreams.length + " уникални възможни видеоадреса."
+      : "Не са открити директни видеоадреси в достъпния HTML. Плеърът може да се зарежда отделно или да изисква достъп.";
     output.prepend(summary);
-
-    status.textContent =
-      "Проверени страници: " + completed +
-      ". Намерени видеоадреси: " + discoveredStreams.length + ".";
-
+    status.textContent = "Проверени страници: " + completed + ". Намерени видеоадреси: " + discoveredStreams.length + ".";
   } finally {
     button.disabled = false;
-    button.textContent = "🔎 Намери видеоадреси в каналите";
+    button.textContent = "🔎 Провери страниците за видеоадреси";
   }
 }
 
 function addFoundStreams() {
   const status = document.getElementById("streamStatus");
   const textarea = document.getElementById("channels");
-
   if (!discoveredStreams.length) {
-    status.textContent =
-      "Няма намерени видеоадреси за добавяне.";
+    status.textContent = "Няма намерени видеоадреси за добавяне.";
     return;
   }
-
   const existing = textarea.value.trim();
-
-  const additions = discoveredStreams.map(item =>
-    item.name + " | " + item.url
-  ).join("\n");
-
-  textarea.value = existing
-    ? existing + "\n" + additions
-    : additions;
-
-  status.textContent =
-    "✅ Добавени са " + discoveredStreams.length +
-    " възможни видеоадреса. Провери ги преди създаване на плейлиста.";
+  const additions = discoveredStreams.map(item => item.name + " | " + item.url).join("\n");
+  textarea.value = existing ? existing + "\n" + additions : additions;
+  status.textContent = "✅ Добавени са " + discoveredStreams.length + " възможни видеоадреса.";
 }
 
 function getChannels() {
-  return document.getElementById("channels").value
-    .split(/\r?\n/)
-    .map(line => {
-      const pos = line.indexOf("|");
-
-      if (pos < 0) return null;
-
-      const name = line.slice(0, pos).trim();
-      const url = line.slice(pos + 1).trim();
-
-      try {
-        const parsed = new URL(url);
-
-        if (
-          !name ||
-          !["http:", "https:"].includes(parsed.protocol)
-        ) {
-          return null;
-        }
-
-        return { name, url };
-      } catch {
-        return null;
-      }
-    })
-    .filter(Boolean);
+  return document.getElementById("channels").value.split(/\r?\n/).map(line => {
+    const pos = line.indexOf("|");
+    if (pos < 0) return null;
+    const name = line.slice(0, pos).trim();
+    const url = line.slice(pos + 1).trim();
+    try {
+      const parsed = new URL(url);
+      if (!name || !["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password) return null;
+      return {name, url: parsed.href};
+    } catch {
+      return null;
+    }
+  }).filter(Boolean);
 }
 
 function generate() {
   const channels = getChannels();
-
-  const playlistName =
-    document.getElementById("playlistName").value.trim()
-    || "Bulgarian TV";
-
+  const playlistName = document.getElementById("playlistName").value.trim() || "Bulgarian TV";
   if (!channels.length) {
-    alert(
-      "Добави директен видеоадрес във формат Име | URL."
-    );
+    setMessage(document.getElementById("results"), "Добави директни видеоадреси във формат „Име | URL“.", "warn");
     return;
   }
-
   let output = "#EXTM3U\n";
-
-  channels.forEach(channel => {
-    output += "#EXTINF:-1," +
-      channel.name.replace(/[\r\n]/g, "") +
-      "\n" + channel.url + "\n";
-  });
-
-  const blob = new Blob([output], {
-    type: "audio/x-mpegurl;charset=utf-8"
-  });
-
-  const downloadUrl = URL.createObjectURL(blob);
+  for (const channel of channels) {
+    output += "#EXTINF:-1," + channel.name.replace(/[\r\n]/g, "") + "\n" + channel.url + "\n";
+  }
+  const blob = new Blob([output], {type:"audio/x-mpegurl;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-
-  a.href = downloadUrl;
-  a.download =
-    playlistName.replace(/[^a-zA-Z0-9а-яА-Я_-]/g, "_")
-    + ".m3u";
-
+  a.href = url;
+  a.download = playlistName.replace(/[^a-zA-Z0-9а-яА-Я_-]/g, "_") + ".m3u";
   document.body.appendChild(a);
   a.click();
   a.remove();
-
-  setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setMessage(document.getElementById("results"), "✅ Създаден е M3U плейлист с " + channels.length + " адреса. Това не подновява изтекли токени.", "good");
 }
 
 async function checkChannels() {
   const channels = getChannels();
   const results = document.getElementById("results");
-
   results.replaceChildren();
-
   if (!channels.length) {
-    alert("Добави директни видеоадреси за проверка.");
+    setMessage(results, "Добави адреси, които искаш да провериш.", "warn");
     return;
   }
-
-  for (const channel of channels) {
+  for (const channel of channels.slice(0, 30)) {
     const card = document.createElement("div");
-    card.className = "result";
+    card.className = "card";
     card.textContent = channel.name + ": Проверява се...";
     results.appendChild(card);
-
     try {
       const response = await fetch("/api/check", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ url: channel.url })
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({url: channel.url})
       });
-
       const data = await response.json();
-
-      card.textContent = channel.name + ": " +
-        (data.message || "Няма резултат.");
-
+      card.textContent = channel.name + ": " + (data.message || "Няма резултат.");
+      card.classList.add(data.ok ? "good" : "warn");
     } catch {
-      card.textContent =
-        channel.name + ": Грешка при проверката.";
+      card.textContent = channel.name + ": Грешка при проверката.";
+      card.classList.add("warn");
     }
+  }
+  if (channels.length > 30) {
+    const note = document.createElement("div");
+    note.className = "card warn";
+    note.textContent = "Проверени са първите 30 адреса. Останалите не са проверени в тази заявка.";
+    results.appendChild(note);
   }
 }
 
 function clearForm() {
-  if (confirm("Да изчистя ли въведените канали?")) {
-    document.getElementById("channels").value = "";
-    document.getElementById("results").replaceChildren();
-    document.getElementById("found").replaceChildren();
-    document.getElementById("copyStatus").textContent = "";
-    document.getElementById("inspectResults").replaceChildren();
-    document.getElementById("streamStatus").textContent = "";
-
-    discoveredChannels = [];
-    discoveredStreams = [];
-  }
+  if (!confirm("Да изчистя ли въведените канали и резултатите?")) return;
+  document.getElementById("channels").value = "";
+  document.getElementById("results").replaceChildren();
+  document.getElementById("found").replaceChildren();
+  document.getElementById("copyStatus").textContent = "";
+  document.getElementById("inspectResults").replaceChildren();
+  document.getElementById("streamStatus").textContent = "";
+  discoveredChannels = [];
+  discoveredStreams = [];
 }
 </script>
-
 </body>
 </html>
