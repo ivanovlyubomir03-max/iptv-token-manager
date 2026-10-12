@@ -113,6 +113,13 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 <div id="results" aria-live="polite"></div>
 </section>
 
+<section>
+<h2>💾 Запазване на адресите</h2>
+<p class="small">Въведените канали и последният адрес на плеъра се запазват локално в този браузър на това устройство. Адресите с токени също може да се запазят — не използвай тази опция на споделено устройство. Изчистването на данните на браузъра може да ги премахне.</p>
+<button class="dark" onclick="clearSavedData()">🗑️ Изтрий запазените данни</button>
+<div id="saveStatus" class="status" aria-live="polite"></div>
+</section>
+
 <section class="warn">
 <b>Важно за токените:</b> приложението може да провери дали даден адрес отговаря, но не може само да поднови изтекъл токен. Автоматично обновяване е възможно само ако източникът предлага разрешен начин за получаване на нов адрес. Не се заобикалят DRM, вход или други защити.
 </section>
@@ -121,6 +128,55 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 <script>
 let hlsInstance = null;
 let playerChannels = [];
+const SAVED_STATE_KEY = "iptvTokenManagerStateV1";
+function saveFormState() {
+  try {
+    const state = {
+      channels: document.getElementById("channels").value,
+      playerUrl: document.getElementById("playerUrl").value,
+      playlistName: document.getElementById("playlistName").value,
+      siteUrl: document.getElementById("siteUrl").value
+    };
+    localStorage.setItem(SAVED_STATE_KEY, JSON.stringify(state));
+    const status = document.getElementById("saveStatus");
+    if (status) status.textContent = "✅ Запазено локално в този браузър.";
+  } catch {
+    const status = document.getElementById("saveStatus");
+    if (status) status.textContent = "Не успях да запазя данните. Провери настройките на браузъра.";
+  }
+}
+function restoreFormState() {
+  try {
+    const raw = localStorage.getItem(SAVED_STATE_KEY);
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    if (typeof state.channels === "string") document.getElementById("channels").value = state.channels;
+    if (typeof state.playerUrl === "string") document.getElementById("playerUrl").value = state.playerUrl;
+    if (typeof state.playlistName === "string") document.getElementById("playlistName").value = state.playlistName;
+    if (typeof state.siteUrl === "string") document.getElementById("siteUrl").value = state.siteUrl;
+    const status = document.getElementById("saveStatus");
+    if (status) status.textContent = "✅ Възстановени са запазените полета от този браузър.";
+  } catch {
+    const status = document.getElementById("saveStatus");
+    if (status) status.textContent = "Запазените данни не можаха да бъдат възстановени.";
+  }
+}
+function clearSavedData() {
+  try {
+    localStorage.removeItem(SAVED_STATE_KEY);
+    document.getElementById("channels").value = "";
+    document.getElementById("playerUrl").value = "";
+    document.getElementById("saveStatus").textContent = "Запазените данни са изтрити от този браузър.";
+  } catch {
+    document.getElementById("saveStatus").textContent = "Не успях да изтрия локалните данни.";
+  }
+}
+window.addEventListener("DOMContentLoaded", () => {
+  restoreFormState();
+  for (const id of ["channels", "playerUrl", "playlistName", "siteUrl"]) {
+    document.getElementById(id).addEventListener("input", saveFormState);
+  }
+});
 function refreshPlayerChannelList() {
   const select = document.getElementById("playlistChannel");
   if (!select) return;
@@ -241,9 +297,10 @@ function addPlayingStreamToPlaylist() {
   const name = parsed.pathname.toLowerCase().includes("/nova/") ? "NOVA TV" :
     (parsed.pathname.split("/").filter(Boolean).pop() || parsed.hostname).replace(/\\.(m3u8|mpd)$/i, "").replace(/[-_]+/g, " ");
   textarea.value = textarea.value.trim()
-    ? textarea.value.trim() + "\\n" + name + " | " + parsed.href
+    ? textarea.value.trim() + "\n" + name + " | " + parsed.href
     : name + " | " + parsed.href;
-  setMessage(status, "✅ Адресът е добавен в M3U полето. Сега натисни „Изтегли M3U“, за да запазиш плейлиста.", "good");
+  saveFormState();
+  setMessage(status, "✅ Адресът е добавен и запазен локално. Натисни „Изтегли M3U“, за да изтеглиш файла.", "good");
 }
 function usePlaylistAddress() {
   const channels = getChannels();
