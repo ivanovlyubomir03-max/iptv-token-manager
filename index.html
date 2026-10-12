@@ -41,6 +41,7 @@ button:disabled {
 }
 .search { background: #7045d6; }
 .check { background: #198754; }
+.copy { background: #087f8c; }
 .clear { background: #555; }
 .result {
   background: white;
@@ -64,6 +65,10 @@ button:disabled {
   font-size: 14px;
 }
 a { overflow-wrap: anywhere; }
+.status {
+  padding: 10px;
+  overflow-wrap: anywhere;
+}
 </style>
 </head>
 
@@ -72,8 +77,8 @@ a { overflow-wrap: anywhere; }
 <h1>📺 IPTV Token Manager</h1>
 
 <p>
-Намиране на телевизионни канали по категории и създаване
-на M3U плейлист от директни видеоадреси.
+Намиране на телевизионни канали по категории,
+копиране на списъка и създаване на M3U плейлист.
 </p>
 
 <label><b>1. Намери каналите</b></label>
@@ -91,6 +96,12 @@ a { overflow-wrap: anywhere; }
 
 <div id="found" aria-live="polite"></div>
 
+<button type="button" class="copy" onclick="copyFoundChannels()">
+📋 Копирай списъка с каналите
+</button>
+
+<div id="copyStatus" class="status" aria-live="polite"></div>
+
 <hr>
 
 <h3>📃 Създаване на M3U плейлист</h3>
@@ -102,8 +113,8 @@ a { overflow-wrap: anywhere; }
 <label><b>3. Директни видеоадреси</b></label>
 
 <p>
-Въвеждай само директни и разрешени за използване
-видеоадреси, например адреси към .m3u8 или .m3u потоци.
+Въведи директни видеоадреси, които имаш право да използваш.
+Форматът е Име | URL.
 </p>
 
 <textarea
@@ -126,19 +137,23 @@ a { overflow-wrap: anywhere; }
 <div id="results" aria-live="polite"></div>
 
 <div class="note">
-<b>Важно:</b> Програмата открива страниците на каналите,
-но това не означава, че е намерен работещ видео поток.
-Не използвай временни токени или потоци, за които нямаш
-разрешение за достъп.
+<b>Важно:</b> Страниците на каналите не са непременно
+директни видео потоци. За работещ M3U плейлист са необходими
+съвместими видеоадреси с разрешен достъп.
 </div>
 
 <script>
+let discoveredChannels = [];
+
 async function discover() {
   const input = document.getElementById("siteUrl");
   const found = document.getElementById("found");
   const button = document.getElementById("discoverButton");
+  const copyStatus = document.getElementById("copyStatus");
 
   found.replaceChildren();
+  copyStatus.textContent = "";
+  discoveredChannels = [];
 
   let page;
 
@@ -153,8 +168,7 @@ async function discover() {
     page.protocol !== "https:" ||
     !["gledaitv.live", "www.gledaitv.live"].includes(page.hostname)
   ) {
-    found.textContent =
-      "Въведи HTTPS адрес от gledaitv.live.";
+    found.textContent = "Въведи HTTPS адрес от gledaitv.live.";
     return;
   }
 
@@ -184,12 +198,24 @@ async function discover() {
       return;
     }
 
+    discoveredChannels = data.links.filter(item => {
+      try {
+        const url = new URL(item.url);
+        return (
+          ["gledaitv.live", "www.gledaitv.live"].includes(url.hostname) &&
+          /^\/watch-tv\/\d+\//i.test(url.pathname)
+        );
+      } catch {
+        return false;
+      }
+    });
+
     const heading = document.createElement("h3");
     heading.textContent =
-      "📺 Намерени страници: " + data.links.length;
+      "📺 Намерени страници: " + discoveredChannels.length;
     found.appendChild(heading);
 
-    data.links.forEach(item => {
+    discoveredChannels.forEach(item => {
       const card = document.createElement("div");
       card.className = "result";
 
@@ -209,7 +235,6 @@ async function discover() {
       card.appendChild(category);
       card.appendChild(name);
       card.appendChild(link);
-
       found.appendChild(card);
     });
 
@@ -221,12 +246,48 @@ async function discover() {
       found.appendChild(warning);
     }
 
-  } catch (error) {
+  } catch {
     found.textContent =
-      "Грешка при свързването. Провери дали API файлът е публикуван във Vercel.";
+      "Грешка при свързването. Провери API файла във Vercel.";
   } finally {
     button.disabled = false;
     button.textContent = "🔍 Намери всички канали";
+  }
+}
+
+async function copyFoundChannels() {
+  const status = document.getElementById("copyStatus");
+
+  if (!discoveredChannels.length) {
+    status.textContent =
+      "Първо натисни „Намери всички канали“.";
+    return;
+  }
+
+  const text = discoveredChannels.map(item =>
+    (item.name || "Телевизионен канал") + " | " + item.url
+  ).join("\n");
+
+  try {
+    await navigator.clipboard.writeText(text);
+    status.textContent =
+      "✅ Копирани са " + discoveredChannels.length +
+      " страници на канали.";
+  } catch {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.style.position = "fixed";
+    area.style.opacity = "1";
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+
+    const success = document.execCommand("copy");
+    area.remove();
+
+    status.textContent = success
+      ? "✅ Списъкът е копиран."
+      : "Неуспешно копиране. Опитай през HTTPS браузър.";
   }
 }
 
@@ -292,7 +353,9 @@ function generate() {
     playlistName.replace(/[^a-zA-Z0-9а-яА-Я_-]/g, "_")
     + ".m3u";
 
+  document.body.appendChild(a);
   a.click();
+  a.remove();
 
   setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
 }
@@ -340,6 +403,8 @@ function clearForm() {
     document.getElementById("channels").value = "";
     document.getElementById("results").replaceChildren();
     document.getElementById("found").replaceChildren();
+    document.getElementById("copyStatus").textContent = "";
+    discoveredChannels = [];
   }
 }
 </script>
