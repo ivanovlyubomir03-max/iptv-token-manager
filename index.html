@@ -540,7 +540,7 @@ async function checkChannels() {
   summary.textContent = "⏳ Проверявам " + batch.length + " адреса. Резултатът показва HTTP отговор, не гарантира възпроизвеждане.";
   results.appendChild(summary);
 
-  let reachable = 0, denied = 0, redirected = 0, other = 0;
+  let verified = 0, httpUnconfirmed = 0, denied = 0, redirected = 0, other = 0;
   const cards = batch.map(channel => {
     const card = document.createElement("div");
     card.className = "card";
@@ -561,8 +561,9 @@ async function checkChannels() {
         });
         const data = await response.json();
         item.card.textContent = item.channel.name + ": " + (data.message || "Няма резултат.");
-        item.card.classList.add(data.ok ? "good" : "warn");
-        if (data.ok) reachable++;
+        item.card.classList.add(data.verified ? "good" : "warn");
+        if (data.verified) verified++;
+        else if (data.httpOk) httpUnconfirmed++;
         else if (data.status === 401 || data.status === 403) denied++;
         else if (data.redirect || (data.status >= 300 && data.status < 400)) redirected++;
         else other++;
@@ -574,10 +575,11 @@ async function checkChannels() {
     }
   }
   await Promise.all(Array.from({length: Math.min(4, cards.length)}, () => worker()));
-  summary.className = "card " + (denied || redirected || other ? "warn" : "good");
-  summary.textContent = "Проверени: " + batch.length + " · HTTP успех: " + reachable +
+  summary.className = "card " + (httpUnconfirmed || denied || redirected || other ? "warn" : "good");
+  summary.textContent = "Проверени: " + batch.length + " · Потвърден плейлист: " + verified +
+    " · HTTP отговор без потвърден формат: " + httpUnconfirmed +
     " · Отказан достъп: " + denied + " · Пренасочване: " + redirected + " · Други/грешки: " + other +
-    ". HTTP успехът не доказва, че видеото се възпроизвежда; за това използвай вградения плеър.";
+    ". Потвърденият плейлист показва правилен HLS/DASH формат, но възпроизвеждането пак може да е ограничено от сървъра. ";
   if (channels.length > 30) {
     const note = document.createElement("div");
     note.className = "card warn";
