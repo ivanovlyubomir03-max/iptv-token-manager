@@ -44,6 +44,13 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 </header>
 
 <section>
+<h2>🚀 Автоматично търсене и общ плейлист</h2>
+<p class="small">С едно натискане програмата намира публичните страници на каналите, търси директни видеоадреси, обединява намерените потоци в един списък и подготвя M3U файл. После можеш да избереш канал и да го пуснеш във вградения плеър.</p>
+<button id="autoWorkflowButton" onclick="runAutoWorkflow()">🚀 Намери каналите и създай общ плейлист</button>
+<div id="autoWorkflowStatus" class="status" aria-live="polite"></div>
+</section>
+
+<section>
 <h2>1. 🔍 Намери каналите</h2>
 <label for="siteUrl">Източник</label>
 <input id="siteUrl" type="url" value="https://www.gledaitv.fan/bulgaria-tv-channels.html" placeholder="https://www.gledaitv.fan/bulgaria-tv-channels.html">
@@ -72,6 +79,14 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 <section>
 <h2>3. ▶️ Вграден плеър за тест на потока</h2>
 <p class="small">Постави директен HTTPS адрес към .m3u8. Плеърът възпроизвежда потока в браузъра, когато форматът и сървърът го позволяват. Някои източници блокират възпроизвеждане от друг сайт (CORS) или изискват валиден токен.</p>
+<label for="playlistChannel">Избери канал от намерените потоци</label>
+<select id="playlistChannel" onchange="useSelectedChannel()" style="width:100%;font:inherit;border:1px solid #c7d0df;border-radius:9px;padding:12px;margin:5px 0;background:#fff">
+<option value="">Първо намери каналите</option>
+</select>
+<div class="grid">
+<button class="secondary" onclick="playSelectedChannel()">▶️ Пусни избрания канал</button>
+<button class="dark" onclick="playNextChannel()">⏭️ Следващ канал</button>
+</div>
 <label for="playerUrl">Видеоадрес (.m3u8)</label>
 <input id="playerUrl" type="url" placeholder="Постави линка към потока тук">
 <div class="grid">
@@ -105,6 +120,101 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 <script>
 let hlsInstance = null;
+let playerChannels = [];
+function refreshPlayerChannelList() {
+  const select = document.getElementById("playlistChannel");
+  if (!select) return;
+  const previous = select.value;
+  const fromFound = discoveredStreams.map(item => ({name:item.name || "Телевизия", url:item.url}));
+  const fromPlaylist = getChannels().map(item => ({name:item.name, url:item.url}));
+  const merged = [];
+  for (const item of [...fromFound, ...fromPlaylist]) {
+    if (!merged.some(existing => existing.url === item.url)) merged.push(item);
+  }
+  playerChannels = merged;
+  select.replaceChildren();
+  if (!merged.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Първо намери каналите";
+    select.appendChild(option);
+    return;
+  }
+  merged.forEach((item, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = item.name;
+    select.appendChild(option);
+  });
+  const previousIndex = merged.findIndex(item => item.url === previous);
+  select.value = previousIndex >= 0 ? String(previousIndex) : "0";
+  select.dataset.urlMode = "index";
+}
+function useSelectedChannel() {
+  const select = document.getElementById("playlistChannel");
+  const index = Number(select.value);
+  if (!Number.isInteger(index) || !playerChannels[index]) return;
+  document.getElementById("playerUrl").value = playerChannels[index].url;
+}
+function playSelectedChannel() {
+  useSelectedChannel();
+  if (!document.getElementById("playerUrl").value.trim()) {
+    setMessage(document.getElementById("playerStatus"), "Няма избран видеоадрес. Първо намери каналите.", "warn");
+    return;
+  }
+  playStream();
+}
+function playNextChannel() {
+  const select = document.getElementById("playlistChannel");
+  if (!playerChannels.length) refreshPlayerChannelList();
+  if (!playerChannels.length) {
+    setMessage(document.getElementById("playerStatus"), "Няма канали за пускане. Стартирай автоматичното търсене.", "warn");
+    return;
+  }
+  const current = Number(select.value);
+  select.value = String((Number.isInteger(current) ? current + 1 : 0) % playerChannels.length);
+  playSelectedChannel();
+}
+async function runAutoWorkflow() {
+  const button = document.getElementById("autoWorkflowButton");
+  const status = document.getElementById("autoWorkflowStatus");
+  button.disabled = true;
+  try {
+    status.textContent = "Стъпка 1/3: Намирам страниците на каналите...";
+    await discover();
+    if (!discoveredChannels.length) {
+      setMessage(status, "Не бяха намерени страници. Провери адреса в секция 1 и опитай отново.", "warn");
+      return;
+    }
+    status.textContent = "Стъпка 2/3: Сканирам намерените страници за публични видеоадреси...";
+    await inspectChannels();
+    if (!discoveredStreams.length) {
+      setMessage(status, "Намерени са страници на канали, но не и директни видеоадреси в публичния HTML. Нищо не е добавено към плейлиста.", "warn");
+      return;
+    }
+    const textarea = document.getElementById("channels");
+    const existing = getChannels();
+    const additions = discoveredStreams.filter(item => !existing.some(channel => channel.url === item.url));
+    const prefix = textarea.value.trim();
+    if (additions.length) {
+      textarea.value = prefix
+        ? prefix + "\n" + additions.map(item => item.name + " | " + item.url).join("\n")
+        : additions.map(item => item.name + " | " + item.url).join("\n");
+    }
+    refreshPlayerChannelList();
+    status.textContent = "Стъпка 3/3: Обединявам " + getChannels().length + " уникални адреса в общ M3U плейлист...";
+    generate();
+    setMessage(status, "✅ Готово! Намерени страници: " + discoveredChannels.length +
+      " · Намерени видеоадреси: " + discoveredStreams.length +
+      " · Уникални адреси в общия списък: " + getChannels().length +
+      ". M3U файлът е генериран. Избери канал в секция 3 и натисни „Пусни избрания канал“. Някои потоци може да не работят, ако токенът е изтекъл или сървърът блокира външно възпроизвеждане.", "good");
+  } catch (error) {
+    setMessage(status, "Възникна грешка при автоматичното търсене. Опитай отново.", "warn");
+  } finally {
+    button.disabled = false;
+  }
+}
+
 function addPlayingStreamToPlaylist() {
   const input = document.getElementById("playerUrl");
   const status = document.getElementById("playerStatus");
@@ -523,6 +633,7 @@ function generate() {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   setMessage(document.getElementById("results"), "✅ Създаден е M3U плейлист с " + channels.length + " адреса. Това не подновява изтекли токени.", "good");
+  refreshPlayerChannelList();
 }
 
 async function checkChannels() {
