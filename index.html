@@ -68,8 +68,9 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 <h2>3. 📃 Създай M3U плейлист</h2>
 <label for="playlistName">Име на плейлиста</label>
 <input id="playlistName" value="Bulgarian TV">
-<label for="channels">Канали — по един на ред във формат „Име | URL“</label>
-<textarea id="channels" placeholder="NOVA TV | https://example.com/live.m3u8"></textarea>
+<label for="channels">Адреси за проверка — постави линка самостоятелно или във формат „Име | URL“</label>
+<textarea id="channels" placeholder="Постави тук целия линк към потока, например https://сървър/канал/index.m3u8?token=...&#10;Може и така: NOVA TV | https://сървър/канал/index.m3u8"></textarea>
+<p class="small">Не е нужно да пишеш „example“ или да добавяш името на канала. Можеш да поставиш директно линка, който копираш от Web Video Caster.</p>
 <div class="grid">
 <button onclick="generate()">⬇️ Изтегли M3U</button>
 <button class="green" onclick="checkChannels()">✅ Провери адресите</button>
@@ -326,14 +327,19 @@ function addFoundStreams() {
 
 function getChannels() {
   return document.getElementById("channels").value.split(/\r?\n/).map(line => {
-    const pos = line.indexOf("|");
-    if (pos < 0) return null;
-    const name = line.slice(0, pos).trim();
-    const url = line.slice(pos + 1).trim();
+    const text = line.trim();
+    if (!text) return null;
+    const pos = text.indexOf("|");
+    const name = pos >= 0 ? text.slice(0, pos).trim() : "";
+    const rawUrl = pos >= 0 ? text.slice(pos + 1).trim() : text;
     try {
-      const parsed = new URL(url);
-      if (!name || !["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password) return null;
-      return {name, url: parsed.href};
+      const parsed = new URL(rawUrl);
+      if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password) return null;
+      const pathPart = parsed.pathname.split("/").filter(Boolean).pop() || parsed.hostname;
+      const inferredName = pathPart.toLowerCase() === "index.m3u8"
+        ? (parsed.pathname.toLowerCase().includes("/nova/") ? "NOVA TV" : parsed.hostname)
+        : pathPart.replace(/\.(m3u8|mpd)$/i, "").replace(/[-_]+/g, " ");
+      return {name: name || inferredName || parsed.hostname, url: parsed.href};
     } catch {
       return null;
     }
@@ -368,7 +374,7 @@ async function checkChannels() {
   const results = document.getElementById("results");
   results.replaceChildren();
   if (!channels.length) {
-    setMessage(results, "Добави адреси, които искаш да провериш.", "warn");
+    setMessage(results, "Постави един пълен линк в полето по-горе. Не е нужно да пишеш „Име | URL“ — приложението вече приема и само линка.", "warn");
     return;
   }
   for (const channel of channels.slice(0, 30)) {
