@@ -76,6 +76,7 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 </div>
 <video id="streamPlayer" controls playsinline preload="none" style="width:100%;max-height:55vh;background:#090d15;border-radius:10px;margin-top:8px"></video>
 <div id="playerStatus" class="status" aria-live="polite"></div>
+<button class="green" onclick="addPlayingStreamToPlaylist()">➕ Добави този адрес в M3U плейлиста</button>
 </section>
 
 <section>
@@ -100,6 +101,36 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 <script>
 let hlsInstance = null;
+function addPlayingStreamToPlaylist() {
+  const input = document.getElementById("playerUrl");
+  const status = document.getElementById("playerStatus");
+  const video = document.getElementById("streamPlayer");
+  let parsed;
+  try { parsed = new URL(input.value.trim()); } catch {
+    setMessage(status, "Първо постави адрес и го отвори в плеъра.", "warn");
+    return;
+  }
+  if (parsed.protocol !== "https:") {
+    setMessage(status, "Приемат се само HTTPS адреси.", "warn");
+    return;
+  }
+  if (video.readyState < 2 && video.paused) {
+    setMessage(status, "Пусни видеото първо, за да потвърдим, че адресът работи.", "warn");
+    return;
+  }
+  const textarea = document.getElementById("channels");
+  const existing = getChannels();
+  if (existing.some(item => item.url === parsed.href)) {
+    setMessage(status, "Този адрес вече е добавен в M3U полето.", "good");
+    return;
+  }
+  const name = parsed.pathname.toLowerCase().includes("/nova/") ? "NOVA TV" :
+    (parsed.pathname.split("/").filter(Boolean).pop() || parsed.hostname).replace(/\\.(m3u8|mpd)$/i, "").replace(/[-_]+/g, " ");
+  textarea.value = textarea.value.trim()
+    ? textarea.value.trim() + "\\n" + name + " | " + parsed.href
+    : name + " | " + parsed.href;
+  setMessage(status, "✅ Адресът е добавен в M3U полето. Сега натисни „Изтегли M3U“, за да запазиш плейлиста.", "good");
+}
 function usePlaylistAddress() {
   const channels = getChannels();
   if (!channels.length) {
