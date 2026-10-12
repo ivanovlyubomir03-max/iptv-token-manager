@@ -530,32 +530,58 @@ async function checkChannels() {
   const results = document.getElementById("results");
   results.replaceChildren();
   if (!channels.length) {
-    setMessage(results, "Постави един пълен линк в полето по-горе. Не е нужно да пишеш „Име | URL“ — приложението вече приема и само линка.", "warn");
+    setMessage(results, "Постави един пълен линк в полето по-горе. Не е нужно да пишеш „Име | URL“ — приложението приема и само линка.", "warn");
     return;
   }
-  for (const channel of channels.slice(0, 30)) {
+
+  const batch = channels.slice(0, 30);
+  const summary = document.createElement("div");
+  summary.className = "card";
+  summary.textContent = "⏳ Проверявам " + batch.length + " адреса. Резултатът показва HTTP отговор, не гарантира възпроизвеждане.";
+  results.appendChild(summary);
+
+  let reachable = 0, denied = 0, redirected = 0, other = 0;
+  const cards = batch.map(channel => {
     const card = document.createElement("div");
     card.className = "card";
     card.textContent = channel.name + ": Проверява се...";
     results.appendChild(card);
-    try {
-      const response = await fetch("/api/check", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({url: channel.url})
-      });
-      const data = await response.json();
-      card.textContent = channel.name + ": " + (data.message || "Няма резултат.");
-      card.classList.add(data.ok ? "good" : "warn");
-    } catch {
-      card.textContent = channel.name + ": Грешка при проверката.";
-      card.classList.add("warn");
+    return {channel, card};
+  });
+
+  let next = 0;
+  async function worker() {
+    while (next < cards.length) {
+      const item = cards[next++];
+      try {
+        const response = await fetch("/api/check", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({url: item.channel.url})
+        });
+        const data = await response.json();
+        item.card.textContent = item.channel.name + ": " + (data.message || "Няма резултат.");
+        item.card.classList.add(data.ok ? "good" : "warn");
+        if (data.ok) reachable++;
+        else if (data.status === 401 || data.status === 403) denied++;
+        else if (data.redirect || (data.status >= 300 && data.status < 400)) redirected++;
+        else other++;
+      } catch {
+        item.card.textContent = item.channel.name + ": Грешка при проверката.";
+        item.card.classList.add("warn");
+        other++;
+      }
     }
   }
+  await Promise.all(Array.from({length: Math.min(4, cards.length)}, () => worker()));
+  summary.className = "card " + (denied || redirected || other ? "warn" : "good");
+  summary.textContent = "Проверени: " + batch.length + " · HTTP успех: " + reachable +
+    " · Отказан достъп: " + denied + " · Пренасочване: " + redirected + " · Други/грешки: " + other +
+    ". HTTP успехът не доказва, че видеото се възпроизвежда; за това използвай вградения плеър.";
   if (channels.length > 30) {
     const note = document.createElement("div");
     note.className = "card warn";
-    note.textContent = "Проверени са първите 30 адреса. Останалите не са проверени в тази заявка.";
+    note.textContent = "Проверени са първите 30 адреса. Натисни проверката отново след като останалите адреси са отделени в нов списък.";
     results.appendChild(note);
   }
 }
