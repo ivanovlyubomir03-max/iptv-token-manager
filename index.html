@@ -34,6 +34,15 @@ button.orange{background:#c96812}
 .badge{display:inline-block;background:#e9e5ff;color:#4d3a92;border-radius:6px;padding:4px 7px;font-size:12px}
 a{overflow-wrap:anywhere}
 hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
+/* Опростен интерфейс: оставяме автоматичното търсене и плеъра */
+body > section{display:none}
+body > section:nth-of-type(1),
+body > section:nth-of-type(4){display:block}
+body > section:nth-of-type(1) .small{font-size:14px}
+body > section:nth-of-type(4) label[for="playerUrl"],
+body > section:nth-of-type(4) #playerUrl,
+body > section:nth-of-type(4) button.dark[onclick="usePlaylistAddress()"],
+body > section:nth-of-type(4) button.green[onclick="addPlayingStreamToPlaylist()"]{display:none}
 @media(max-width:520px){body{padding:10px}section{padding:12px}header{padding:17px}}
 </style>
 </head>
@@ -44,9 +53,9 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 </header>
 
 <section>
-<h2>🚀 Автоматично търсене и общ плейлист</h2>
-<p class="small">С едно натискане програмата намира публичните страници на каналите, търси директни видеоадреси, обединява намерените потоци в един списък и подготвя M3U файл. После можеш да избереш канал и да го пуснеш във вградения плеър.</p>
-<button id="autoWorkflowButton" onclick="runAutoWorkflow()">🚀 Намери каналите и създай общ плейлист</button>
+<h2>🚀 Намери каналите и пусни плейлиста</h2>
+<p class="small">Натисни бутона веднъж. Програмата ще намери страниците, ще събере откритите публични видеоадреси в общ M3U файл и ще подготви каналите за пускане от плеъра по-долу.</p>
+<button id="autoWorkflowButton" onclick="runAutoWorkflow()">🚀 Намери каналите и създай плейлист</button>
 <div id="autoWorkflowStatus" class="status" aria-live="polite"></div>
 </section>
 
@@ -77,8 +86,8 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 
 
 <section>
-<h2>3. ▶️ Вграден плеър за тест на потока</h2>
-<p class="small">Постави директен HTTPS адрес към .m3u8. Плеърът възпроизвежда потока в браузъра, когато форматът и сървърът го позволяват. Някои източници блокират възпроизвеждане от друг сайт (CORS) или изискват валиден токен.</p>
+<h2>▶️ Плеър</h2>
+<p class="small">Избери канал от общия списък и натисни „Пусни“. HTML плеърът възпроизвежда по един канал наведнъж; можеш да сменяш каналите от списъка.</p>
 <label for="playlistChannel">Избери канал от намерените потоци</label>
 <select id="playlistChannel" onchange="useSelectedChannel()" style="width:100%;font:inherit;border:1px solid #c7d0df;border-radius:9px;padding:12px;margin:5px 0;background:#fff">
 <option value="">Първо намери каналите</option>
@@ -86,6 +95,7 @@ hr{border:0;border-top:1px solid #e1e6ef;margin:18px 0}
 <div class="grid">
 <button class="secondary" onclick="playSelectedChannel()">▶️ Пусни избрания канал</button>
 <button class="dark" onclick="playNextChannel()">⏭️ Следващ канал</button>
+<button class="green" onclick="generate()">⬇️ Изтегли общия M3U плейлист</button>
 </div>
 <label for="playerUrl">Видеоадрес (.m3u8)</label>
 <input id="playerUrl" type="url" placeholder="Постави линка към потока тук">
