@@ -1,0 +1,28 @@
+{
+  "name": "NOVA Player 2",
+  "version": "1.0.0",
+  "type": "pages",
+  "headline": "NOVA HD — избери Player 2",
+  "template": {
+    "type": "separate",
+    "layout": "0,0,5,3",
+    "icon": "msx-white-soft:play",
+    "color": "msx-glass"
+  },
+  "items": [
+    {
+      "id": "nova-player-2-external",
+      "title": "Player 2 — външен браузър",
+      "headline": "Препоръчано",
+      "text": "Отвори оригиналната страница и избери Player 2.",
+      "action": "link:window:https://www.gledaitv.fan/nova-hd-live-tv.html"
+    },
+    {
+      "id": "nova-player-2-msx",
+      "title": "Player 2 — прозорец в MSX",
+      "headline": "Резервен начин",
+      "text": "Ако първият вариант не се отвори, пробвай този. Избери Player 2 на страницата.",
+      "action": "link:https://www.gledaitv.fan/nova-hd-live-tv.html"
+    }
+  ]
+}
