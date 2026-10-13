@@ -1,0 +1,10 @@
+{
+  "name": "PlayTube TV",
+  "version": "1.0.0",
+  "parameter": "menu:https://ivanovlyubomir03-max.github.io/iptv-token-manager/msx/menu.json",
+  "welcome": "start",
+  "launcher": {
+    "icon": "movie",
+    "color": "#24324a"
+  }
+}
