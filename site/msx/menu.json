@@ -1,0 +1,29 @@
+{
+  "name": "PlayTube TV",
+  "version": "1.0.0",
+  "headline": "Видео",
+  "menu": [
+    {
+      "id": "playtube",
+      "icon": "movie",
+      "label": "Отвори PlayTube.TV",
+      "data": {
+        "name": "PlayTube.TV",
+        "headline": "PlayTube.TV",
+        "pages": [
+          {
+            "items": [
+              {
+                "type": "button",
+                "icon": "web-asset",
+                "layout": "0,0,12,4",
+                "label": "Отвори сайта",
+                "action": "link:https://playtube.tv/"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
