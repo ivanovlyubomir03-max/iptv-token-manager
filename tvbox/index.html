@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>MY TV BOX</title>
+<style>
+:root{color-scheme:dark;font-family:Arial,Helvetica,sans-serif;background:#0b1220;color:#fff}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top,#1b3155 0,#0b1220 58%);padding:clamp(14px,3vw,38px)}
+header{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin:0 auto 28px;max-width:1200px}
+.brand{font-size:clamp(25px,4vw,42px);font-weight:900;letter-spacing:1px}
+.sub{color:#a9bddb;margin-top:8px;font-size:clamp(14px,1.8vw,18px)}
+.pill{background:#223753;border:1px solid #38516f;padding:10px 15px;border-radius:30px;color:#dceaff}
+main{max-width:1200px;margin:auto}
+h2{font-size:clamp(20px,2.6vw,28px);margin:25px 0 14px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.tile{min-height:clamp(125px,18vw,190px);border:2px solid #344761;border-radius:18px;padding:18px;background:#17263b;color:white;text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;transition:transform .15s,border-color .15s;outline:none}
+.tile:focus,.tile:hover{border-color:#80c7ff;transform:scale(1.025);background:#203752}
+.tile .emoji{font-size:clamp(32px,5vw,54px)}
+.tile strong{font-size:clamp(16px,2vw,23px)}
+.tile small{color:#b6c8df;font-size:clamp(12px,1.4vw,15px);margin-top:7px}
+.blue{background:linear-gradient(145deg,#163e75,#17263b)}
+.red{background:linear-gradient(145deg,#7b2637,#17263b)}
+.purple{background:linear-gradient(145deg,#50358c,#17263b)}
+.green{background:linear-gradient(145deg,#17634f,#17263b)}
+.orange{background:linear-gradient(145deg,#875019,#17263b)}
+.panel{margin-top:24px;background:#121f31;border:1px solid #2e425c;border-radius:16px;padding:18px}
+.panel p{color:#b9c9dc;line-height:1.5}
+button,input{font:inherit;border-radius:10px;padding:12px;border:1px solid #425873;background:#0b1626;color:white}
+button{cursor:pointer;background:#235da8;font-weight:bold}
+button:focus,input:focus{outline:3px solid #80c7ff;outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+input{flex:1;min-width:190px}
+.saved{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.saved a{color:#fff;text-decoration:none;border:1px solid #425873;background:#1a2b42;border-radius:10px;padding:12px 15px}
+.note{font-size:13px;color:#9eb2cb;line-height:1.5}
+footer{max-width:1200px;margin:26px auto 0;color:#8ea4c0;font-size:13px}
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:430px){.grid{gap:10px}.tile{padding:13px;min-height:120px}.pill{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="brand">📺 MY TV BOX</div>
+    <div class="sub">Твоят портал за телевизия, филми и сериали</div>
+  </div>
+  <div class="pill">🏠 Начало · Българско съдържание</div>
+</header>
+<main>
+  <h2>Избери какво да гледаш</h2>
+  <div class="grid">
+    <a class="tile blue" href="https://bnt.bg/" target="_blank" rel="noopener"><span class="emoji">📡</span><div><strong>БНТ</strong><small>Българска национална телевизия</small></div></a>
+    <a class="tile red" href="https://play.nova.bg/" target="_blank" rel="noopener"><span class="emoji">📺</span><div><strong>NOVA PLAY</strong><small>Предавания и телевизионно съдържание</small></div></a>
+    <a class="tile purple" href="https://btvplus.bg/" target="_blank" rel="noopener"><span class="emoji">🎬</span><div><strong>bTV Plus</strong><small>Предавания и видеа</small></div></a>
+    <a class="tile" href="https://www.youtube.com/" target="_blank" rel="noopener"><span class="emoji">▶️</span><div><strong>YouTube</strong><small>Клипове, музика и канали</small></div></a>
+    <a class="tile green" href="https://bnt.bg/live" target="_blank" rel="noopener"><span class="emoji">🔴</span><div><strong>БНТ на живо</strong><small>Отвори официалния live раздел</small></div></a>
+    <a class="tile orange" href="https://play.nova.bg/" target="_blank" rel="noopener"><span class="emoji">🍿</span><div><strong>Филми и предавания</strong><small>Каталог от видео съдържание</small></div></a>
+    <a class="tile purple" href="https://btvplus.bg/" target="_blank" rel="noopener"><span class="emoji">📚</span><div><strong>Сериали</strong><small>Провери наличните епизоди</small></div></a>
+    <a class="tile" href="#myLinks"><span class="emoji">⭐</span><div><strong>Моите сайтове</strong><small>Добави свои любими адреси</small></div></a>
+  </div>
+
+  <section class="panel" id="myLinks">
+    <h2>⭐ Моите сайтове</h2>
+    <p>Добави адреси на сайтове, които използваш за телевизия, филми или сериали. Запазват се само в браузъра на това устройство.</p>
+    <div class="row">
+      <input id="siteName" type="text" placeholder="Име, например Моите филми" aria-label="Име на сайта">
+      <input id="siteUrl" type="url" placeholder="https://example.com" aria-label="Адрес на сайта">
+      <button id="addSite">＋ Добави</button>
+    </div>
+    <div id="savedLinks" class="saved"></div>
+    <p class="note">Използвай само сайтове, които имаш право да гледаш. Някои услуги може да изискват регистрация или да не работят на стария браузър на телевизора.</p>
+  </section>
+
+  <section class="panel">
+    <h2>💡 Съвет</h2>
+    <p>За най-лесно ползване отвори тази страница от браузъра на телевизора и я добави към любимите, ако браузърът предлага такава опция. Това приложение е меню/портал — не включва платени абонаменти и не гарантира, че всеки сайт ще се възпроизвежда на LG 42LA620S.</p>
+  </section>
+</main>
+<footer>MY TV BOX · Начална страница за телевизор · Версия 1.0</footer>
+<script>
+(function(){
+  var key = "myTvBoxSavedLinksV1";
+  var nameInput = document.getElementById("siteName");
+  var urlInput = document.getElementById("siteUrl");
+  var saved = document.getElementById("savedLinks");
+  function load(){
+    var items = [];
+    try { items = JSON.parse(localStorage.getItem(key) || "[]"); } catch(e) { items = []; }
+    saved.innerHTML = "";
+    items.forEach(function(item,index){
+      var wrap = document.createElement("div");
+      wrap.style.display = "inline-flex";
+      wrap.style.gap = "5px";
+      var a = document.createElement("a");
+      a.href = item.url; a.target = "_blank"; a.rel = "noopener";
+      a.textContent = "🌐 " + item.name;
+      var del = document.createElement("button");
+      del.type = "button"; del.textContent = "×"; del.title = "Изтрий " + item.name;
+      del.onclick = function(){ items.splice(index,1); localStorage.setItem(key,JSON.stringify(items)); load(); };
+      wrap.appendChild(a); wrap.appendChild(del); saved.appendChild(wrap);
+    });
+  }
+  document.getElementById("addSite").onclick = function(){
+    var name = nameInput.value.trim();
+    var raw = urlInput.value.trim();
+    if(!name){ alert("Въведи име на сайта."); return; }
+    var url;
+    try { url = new URL(raw); } catch(e) { alert("Въведи пълен адрес, например https://example.com"); return; }
+    if(url.protocol !== "https:" && url.protocol !== "http:"){ alert("Използвай адрес, който започва с http:// или https://"); return; }
+    var items = [];
+    try { items = JSON.parse(localStorage.getItem(key) || "[]"); } catch(e) { items = []; }
+    if(items.length >= 20){ alert("Можеш да запазиш до 20 сайта."); return; }
+    items.push({name:name,url:url.href});
+    localStorage.setItem(key,JSON.stringify(items));
+    nameInput.value = ""; urlInput.value = ""; load();
+  };
+  load();
+})();
+</script>
+</body>
+</html>
