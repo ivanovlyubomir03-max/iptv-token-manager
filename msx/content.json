@@ -1,8 +1,8 @@
 {
-  "name": "NOVA Player 2",
-  "version": "1.0.0",
+  "name": "MY TV BOX",
+  "version": "1.0.1",
   "type": "pages",
-  "headline": "NOVA HD — избери Player 2",
+  "headline": "📺 MY TV BOX — Българска телевизия и филми",
   "template": {
     "type": "separate",
     "layout": "0,0,5,3",
@@ -11,18 +11,32 @@
   },
   "items": [
     {
-      "id": "nova-player-2-external",
-      "title": "Player 2 — външен браузър",
-      "headline": "Препоръчано",
-      "text": "Отвори оригиналната страница и избери Player 2.",
-      "action": "link:window:https://www.gledaitv.fan/nova-hd-live-tv.html"
+      "id": "gledaitv",
+      "title": "🇧🇬 Български канали",
+      "headline": "GledaiTV.live",
+      "text": "Отвори сайта и избери канал. Ако не работи вътре в MSX, използвай външния браузър.",
+      "action": "link:window:https://www.gledaitv.live/"
     },
     {
-      "id": "nova-player-2-msx",
-      "title": "Player 2 — прозорец в MSX",
-      "headline": "Резервен начин",
-      "text": "Ако първият вариант не се отвори, пробвай този. Избери Player 2 на страницата.",
-      "action": "link:https://www.gledaitv.fan/nova-hd-live-tv.html"
+      "id": "gledaitv-msx",
+      "title": "Български канали — вътре в MSX",
+      "headline": "GledaiTV.live",
+      "text": "Опитай да отвориш сайта в Media Station X.",
+      "action": "link:https://www.gledaitv.live/"
+    },
+    {
+      "id": "filmizip",
+      "title": "🎬 Филми — Filmizip",
+      "headline": "Filmizip",
+      "text": "Отвори каталога за филми и сериали.",
+      "action": "link:window:https://filmizip.com/"
+    },
+    {
+      "id": "mytvbox",
+      "title": "MY TV BOX — уеб меню",
+      "headline": "Отвори пълния портал",
+      "text": "Отваря пълната уеб версия на MY TV BOX.",
+      "action": "link:window:https://iptv-token-manager.vercel.app/tvbox/"
     }
   ]
 }
