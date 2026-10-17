@@ -1,6 +1,6 @@
 {
-  "name": "NOVA Player 2",
-  "version": "1.0.0",
+  "name": "MY TV BOX",
+  "version": "1.0.1",
   "parameter": "content:https://iptv-token-manager.vercel.app/msx/content.json",
   "welcome": "content"
 }
