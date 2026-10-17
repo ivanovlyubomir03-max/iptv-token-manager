@@ -36,6 +36,11 @@ input{flex:1;min-width:190px}
 .saved{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
 .saved a{color:#fff;text-decoration:none;border:1px solid #425873;background:#1a2b42;border-radius:10px;padding:12px 15px}
 .note{font-size:13px;color:#9eb2cb;line-height:1.5}
+.film-viewer{display:none;position:fixed;inset:0;z-index:9999;background:#07101d;flex-direction:column;padding:10px;gap:10px}
+.film-viewer.active{display:flex}
+.film-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.film-bar strong{font-size:18px;flex:1}
+.film-frame{width:100%;flex:1;min-height:0;border:1px solid #344761;border-radius:10px;background:#fff}
 footer{max-width:1200px;margin:26px auto 0;color:#8ea4c0;font-size:13px}
 @media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:430px){.grid{gap:10px}.tile{padding:13px;min-height:120px}.pill{display:none}}
@@ -57,7 +62,7 @@ footer{max-width:1200px;margin:26px auto 0;color:#8ea4c0;font-size:13px}
     <a class="tile purple" href="https://btvplus.bg/" target="_blank" rel="noopener"><span class="emoji">🎬</span><div><strong>bTV Plus</strong><small>Предавания и видеа</small></div></a>
     <a class="tile" href="https://www.youtube.com/" target="_blank" rel="noopener"><span class="emoji">▶️</span><div><strong>YouTube</strong><small>Клипове, музика и канали</small></div></a>
     <a class="tile green" href="https://bnt.bg/live" target="_blank" rel="noopener"><span class="emoji">🔴</span><div><strong>БНТ на живо</strong><small>Отвори официалния live раздел</small></div></a>
-    <a class="tile orange" href="https://play.nova.bg/" target="_blank" rel="noopener"><span class="emoji">🍿</span><div><strong>Филми и предавания</strong><small>Каталог от видео съдържание</small></div></a>
+    <a class="tile orange" href="#filmizip" onclick="openFilmizip();return false;"><span class="emoji">🍿</span><div><strong>Филми — Filmizip</strong><small>Отвори каталога вътре в MY TV BOX</small></div></a>
     <a class="tile purple" href="https://btvplus.bg/" target="_blank" rel="noopener"><span class="emoji">📚</span><div><strong>Сериали</strong><small>Провери наличните епизоди</small></div></a>
     <a class="tile" href="#myLinks"><span class="emoji">⭐</span><div><strong>Моите сайтове</strong><small>Добави свои любими адреси</small></div></a>
   </div>
@@ -79,8 +84,16 @@ footer{max-width:1200px;margin:26px auto 0;color:#8ea4c0;font-size:13px}
     <p>За най-лесно ползване отвори тази страница от браузъра на телевизора и я добави към любимите, ако браузърът предлага такава опция. Това приложение е меню/портал — не включва платени абонаменти и не гарантира, че всеки сайт ще се възпроизвежда на LG 42LA620S.</p>
   </section>
 </main>
+<div class="film-viewer" id="filmViewer" aria-label="Filmizip в MY TV BOX">
+  <div class="film-bar"><button type="button" onclick="closeFilmizip()">← Назад към MY TV BOX</button><strong>🎬 Filmizip</strong><button type="button" onclick="openFilmizipDirect()">Отвори отделно</button></div>
+  <iframe class="film-frame" id="filmFrame" title="Filmizip филми" src="about:blank" allow="fullscreen; autoplay; encrypted-media" allowfullscreen></iframe>
+  <div class="note">Ако страницата остане празна или покаже отказ за свързване, Filmizip не позволява вграждане. Натисни „Отвори отделно“.</div>
+</div>
 <footer>MY TV BOX · Начална страница за телевизор · Версия 1.0</footer>
 <script>
+function openFilmizip(){var v=document.getElementById("filmViewer");var f=document.getElementById("filmFrame");v.classList.add("active");if(f.src==="about:blank"){f.src="https://filmizip.com/";}}
+function closeFilmizip(){document.getElementById("filmViewer").classList.remove("active");}
+function openFilmizipDirect(){window.location.href="https://filmizip.com/";}
 (function(){
   var key = "myTvBoxSavedLinksV1";
   var nameInput = document.getElementById("siteName");
