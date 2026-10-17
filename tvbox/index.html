@@ -80,6 +80,19 @@ footer{max-width:1200px;margin:26px auto 0;color:#8ea4c0;font-size:13px}
     <p class="note">Използвай само сайтове, които имаш право да гледаш. Някои услуги може да изискват регистрация или да не работят на стария браузър на телевизора.</p>
   </section>
 
+
+  <section class="panel" id="simplePlayer">
+    <h2>▶️ Лек видеоплеър за LG</h2>
+    <p>Тестов плеър без външни библиотеки. Въведи директен видеоадрес към MP4 или HLS (.m3u8), ако имаш такъв. Адресът на страница от сайт, например GledaiTV или Filmizip, не е директен видеоадрес.</p>
+    <div class="row">
+      <input id="streamUrl" type="url" placeholder="http://.../video.mp4 или .../index.m3u8" aria-label="Директен видеоадрес">
+      <button id="playStream" type="button">Пусни видео</button>
+      <button id="stopStream" type="button">Спри</button>
+    </div>
+    <video id="simpleVideo" controls playsinline style="display:block;width:100%;max-height:55vh;margin-top:14px;background:#000;border:1px solid #344761;border-radius:10px"></video>
+    <p id="playerStatus" class="note">Готов за тест. Някои стари браузъри не поддържат MP4/HLS или HTTPS сертификати.</p>
+  </section>
+
   <section class="panel">
     <h2>💡 Съвет</h2>
     <p>За най-лесно ползване отвори тази страница от браузъра на телевизора и я добави към любимите, ако браузърът предлага такава опция. Това приложение е меню/портал — не включва платени абонаменти и не гарантира, че всеки сайт ще се възпроизвежда на LG 42LA620S.</p>
@@ -141,6 +154,24 @@ function openFilmizipDirect(){window.location.href="https://filmizip.com/";}
   };
   load();
 })();
+
+(function(){
+  var urlInput=document.getElementById("streamUrl");
+  var video=document.getElementById("simpleVideo");
+  var status=document.getElementById("playerStatus");
+  document.getElementById("playStream").onclick=function(){
+    var raw=urlInput.value.trim();
+    if(!raw){status.textContent="Въведи директен адрес към видеофайл или .m3u8 поток.";return;}
+    if(raw.indexOf("https://")!==0 && raw.indexOf("http://")!==0){status.textContent="Адресът трябва да започва с http:// или https://.";return;}
+    video.pause(); video.removeAttribute("src"); video.load();
+    video.src=raw; video.load();
+    status.textContent="Опит за възпроизвеждане. Ако не тръгне, браузърът може да не поддържа формата или адресът да не е директен.";
+    var p=video.play(); if(p && p.catch){p.catch(function(){status.textContent="Автоматичното пускане е блокирано или форматът не се поддържа. Натисни Play на видеото или провери адреса.";});}
+  };
+  document.getElementById("stopStream").onclick=function(){video.pause();video.removeAttribute("src");video.load();status.textContent="Видеото е спряно.";};
+  video.addEventListener("error",function(){status.textContent="Грешка при видео: адресът може да не е директен, или браузърът/кодекът да не се поддържа.";});
+})();
+
 </script>
 </body>
 </html>
