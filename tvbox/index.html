@@ -86,8 +86,8 @@ footer{max-width:1200px;margin:26px auto 0;color:#8ea4c0;font-size:13px}
 </main>
 <div class="film-viewer" id="filmViewer" aria-label="Filmizip в MY TV BOX">
   <div class="film-bar"><button type="button" onclick="closeFilmizip()">← Назад към MY TV BOX</button><strong>🎬 Filmizip</strong><button type="button" onclick="openFilmizipDirect()">Отвори отделно</button></div>
-  <iframe class="film-frame" id="filmFrame" title="Filmizip филми" src="about:blank" allow="fullscreen; autoplay; encrypted-media" allowfullscreen></iframe>
-  <div class="note">Ако страницата остане празна или покаже отказ за свързване, Filmizip не позволява вграждане. Натисни „Отвори отделно“.</div>
+  <iframe class="film-frame" id="filmFrame" title="Filmizip филми" src="about:blank" sandbox="allow-scripts allow-forms allow-same-origin allow-presentation" referrerpolicy="no-referrer" allow="fullscreen; autoplay; encrypted-media" allowfullscreen></iframe>
+  <div class="note">Вграждането е ограничено: изскачащите прозорци и пренасочванията извън този прозорец се блокират, доколкото браузърът ги поддържа. Ако видеоплейърът не се отвори, сайтът може да изисква отделен прозорец или да не е съвместим с телевизора. Натисни „Отвори отделно“ само ако имаш доверие на сайта.</div>
 </div>
 <footer>MY TV BOX · Начална страница за телевизор · Версия 1.0</footer>
 <script>
