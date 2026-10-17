@@ -62,6 +62,7 @@ footer{max-width:1200px;margin:26px auto 0;color:#8ea4c0;font-size:13px}
     <a class="tile purple" href="https://btvplus.bg/" target="_blank" rel="noopener"><span class="emoji">🎬</span><div><strong>bTV Plus</strong><small>Предавания и видеа</small></div></a>
     <a class="tile" href="https://www.youtube.com/" target="_blank" rel="noopener"><span class="emoji">▶️</span><div><strong>YouTube</strong><small>Клипове, музика и канали</small></div></a>
     <a class="tile green" href="https://bnt.bg/live" target="_blank" rel="noopener"><span class="emoji">🔴</span><div><strong>БНТ на живо</strong><small>Отвори официалния live раздел</small></div></a>
+    <a class="tile green" href="#gledaitv" onclick="openGledaiTV();return false;"><span class="emoji">🇧🇬</span><div><strong>Български канали</strong><small>Телевизия на живо от GledaiTV</small></div></a>
     <a class="tile orange" href="#filmizip" onclick="openFilmizip();return false;"><span class="emoji">🍿</span><div><strong>Филми — Filmizip</strong><small>Отвори каталога вътре в MY TV BOX</small></div></a>
     <a class="tile purple" href="https://btvplus.bg/" target="_blank" rel="noopener"><span class="emoji">📚</span><div><strong>Сериали</strong><small>Провери наличните епизоди</small></div></a>
     <a class="tile" href="#myLinks"><span class="emoji">⭐</span><div><strong>Моите сайтове</strong><small>Добави свои любими адреси</small></div></a>
@@ -84,6 +85,11 @@ footer{max-width:1200px;margin:26px auto 0;color:#8ea4c0;font-size:13px}
     <p>За най-лесно ползване отвори тази страница от браузъра на телевизора и я добави към любимите, ако браузърът предлага такава опция. Това приложение е меню/портал — не включва платени абонаменти и не гарантира, че всеки сайт ще се възпроизвежда на LG 42LA620S.</p>
   </section>
 </main>
+<div class="film-viewer" id="tvViewer" aria-label="Български канали в MY TV BOX">
+  <div class="film-bar"><button type="button" onclick="closeGledaiTV()">← Назад към MY TV BOX</button><strong>🇧🇬 Български канали</strong><button type="button" onclick="openGledaiTVDirect()">Отвори отделно</button></div>
+  <iframe class="film-frame" id="tvFrame" title="GledaiTV онлайн телевизия" src="about:blank" sandbox="allow-scripts allow-forms allow-same-origin allow-presentation" referrerpolicy="no-referrer" allow="fullscreen; autoplay; encrypted-media" allowfullscreen></iframe>
+  <div class="note">Ако каналът не тръгне във вградения прозорец, използвай „Отвори отделно“. Работата зависи от плеъра и поддръжката на браузъра на телевизора. Не инсталирай приложения или разширения, предложени от непознати реклами.</div>
+</div>
 <div class="film-viewer" id="filmViewer" aria-label="Filmizip в MY TV BOX">
   <div class="film-bar"><button type="button" onclick="closeFilmizip()">← Назад към MY TV BOX</button><strong>🎬 Filmizip</strong><button type="button" onclick="openFilmizipDirect()">Отвори отделно</button></div>
   <iframe class="film-frame" id="filmFrame" title="Filmizip филми" src="about:blank" sandbox="allow-scripts allow-forms allow-same-origin allow-presentation" referrerpolicy="no-referrer" allow="fullscreen; autoplay; encrypted-media" allowfullscreen></iframe>
@@ -91,6 +97,9 @@ footer{max-width:1200px;margin:26px auto 0;color:#8ea4c0;font-size:13px}
 </div>
 <footer>MY TV BOX · Начална страница за телевизор · Версия 1.0</footer>
 <script>
+function openGledaiTV(){var v=document.getElementById("tvViewer");var f=document.getElementById("tvFrame");v.classList.add("active");if(f.src==="about:blank"){f.src="https://www.gledaitv.live/";}}
+function closeGledaiTV(){document.getElementById("tvViewer").classList.remove("active");}
+function openGledaiTVDirect(){window.location.href="https://www.gledaitv.live/";}
 function openFilmizip(){var v=document.getElementById("filmViewer");var f=document.getElementById("filmFrame");v.classList.add("active");if(f.src==="about:blank"){f.src="https://filmizip.com/";}}
 function closeFilmizip(){document.getElementById("filmViewer").classList.remove("active");}
 function openFilmizipDirect(){window.location.href="https://filmizip.com/";}
