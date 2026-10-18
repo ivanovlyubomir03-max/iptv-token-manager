@@ -1,6 +1,6 @@
 {
   "name": "MY TV BOX",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "parameter": "content:https://iptv-token-manager.vercel.app/msx/content.json",
-  "welcome": "content"
+  "welcome": "none"
 }
