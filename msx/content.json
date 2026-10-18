@@ -1,41 +1,36 @@
 {
   "name": "MY TV BOX",
-  "version": "1.0.1",
-  "type": "pages",
-  "headline": "📺 MY TV BOX — Българска телевизия и филми",
+  "version": "1.0.2",
+  "type": "list",
+  "headline": "MY TV BOX - Българска телевизия и филми",
   "template": {
     "type": "separate",
-    "layout": "0,0,5,3",
-    "icon": "msx-white-soft:play",
-    "color": "msx-glass"
+    "layout": "0,0,2,4",
+    "color": "msx-glass",
+    "properties": {
+      "button:content:icon": "build",
+      "button:content:action": "system:netcast:menu"
+    }
   },
   "items": [
     {
-      "id": "gledaitv",
-      "title": "🇧🇬 Български канали",
-      "headline": "GledaiTV.live",
-      "text": "Отвори сайта и избери канал. Ако не работи вътре в MSX, използвай външния браузър.",
+      "title": "БЪЛГАРСКИ КАНАЛИ",
+      "icon": "msx-white-soft:tv",
       "action": "link:window:https://www.gledaitv.live/"
     },
     {
-      "id": "gledaitv-msx",
-      "title": "Български канали — вътре в MSX",
-      "headline": "GledaiTV.live",
-      "text": "Опитай да отвориш сайта в Media Station X.",
+      "title": "БЪЛГАРСКИ КАНАЛИ - В MSX",
+      "icon": "msx-white-soft:play",
       "action": "link:https://www.gledaitv.live/"
     },
     {
-      "id": "filmizip",
-      "title": "🎬 Филми — Filmizip",
-      "headline": "Filmizip",
-      "text": "Отвори каталога за филми и сериали.",
+      "title": "ФИЛМИ И СЕРИАЛИ",
+      "icon": "msx-white-soft:movie",
       "action": "link:window:https://filmizip.com/"
     },
     {
-      "id": "mytvbox",
-      "title": "MY TV BOX — уеб меню",
-      "headline": "Отвори пълния портал",
-      "text": "Отваря пълната уеб версия на MY TV BOX.",
+      "title": "MY TV BOX - УЕБ ПОРТАЛ",
+      "icon": "msx-white-soft:home",
       "action": "link:window:https://iptv-token-manager.vercel.app/tvbox/"
     }
   ]
