@@ -1,17 +1,15 @@
 {
   "name": "IPTV Test Menu",
   "version": "1.0.0",
-  "type": "menu",
-  "items": [
+  "menu": [
     {
       "type": "separator",
       "label": "Тестови телевизионни канали"
     },
     {
-      "type": "item",
       "label": "Отвори тестовия плейлист",
       "icon": "live-tv",
-      "action": "playlist:https://msx.benzac.de/services/m3u.php?type=video%26url=https%3A%2F%2Fraw.githubusercontent.com%2Fivanovlyubomir03-max%2Fiptv-token-manager%2Fmain%2Fmsx-test.m3u"
+      "data": "http://msx.benzac.de/services/m3u.php?type=video&url=https%3A%2F%2Fraw.githubusercontent.com%2Fivanovlyubomir03-max%2Fiptv-token-manager%2Fmain%2Fmsx-test.m3u"
     }
   ]
 }
