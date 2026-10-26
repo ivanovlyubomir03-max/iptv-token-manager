@@ -1,0 +1,24 @@
+#EXTM3U
+# IPTV test playlist for Media Station X / SS IPTV
+# Use only streams you are authorized to access. Channel labels and availability are not independently verified.
+
+#EXTINF:-1 group-title="Тест",DIEMA HD (проверка)
+http://212.70.131.37:8000/play/a04u
+#EXTINF:-1 group-title="Тест",AMC (проверка)
+http://212.70.131.37:8000/play/a05k
+#EXTINF:-1 group-title="Тест",AXN (проверка)
+http://212.70.131.37:8000/play/a03h
+#EXTINF:-1 group-title="Тест",HBO (проверка)
+http://212.70.131.37:8000/play/a05h
+#EXTINF:-1 group-title="Тест",HBO 2 (проверка)
+http://212.70.131.37:8000/play/a05i
+#EXTINF:-1 group-title="Тест",Disney (проверка — адресът не е потвърден)
+http://212.70.131.37:8000/play/a05d
+#EXTINF:-1 group-title="Тест",Cartoon Network (проверка)
+http://212.70.131.37:8000/play/a05n
+#EXTINF:-1 group-title="Тест",Cartoonito (проверка)
+http://212.70.131.37:8000/play/a05z
+#EXTINF:-1 group-title="Тест",Planeta HD (проверка)
+http://212.70.131.37:8000/play/a06k
+#EXTINF:-1 group-title="Тест",Fen Folk (проверка)
+http://212.70.131.37:8000/play/a05f
