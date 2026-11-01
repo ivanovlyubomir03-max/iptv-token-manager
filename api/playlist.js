@@ -1,40 +1,21 @@
-// Dynamic combined M3U playlist built from public iptv-org playlists.
-// The upstream lists are refreshed by iptv-org; this endpoint caches briefly.
+// Dynamic M3U playlist. Bulgarian-language and Bulgaria-based channels are listed first.
 const SOURCES = {
   all: "https://iptv-org.github.io/iptv/index.category.m3u",
-  bulgaria: "https://iptv-org.github.io/iptv/countries/bg.m3u"
+  bulgaria: "https://iptv-org.github.io/iptv/countries/bg.m3u",
+  bulgarianLanguage: "https://iptv-org.github.io/iptv/languages/bul.m3u"
 };
 
 const GROUP_NAMES = {
-  Animation: "Детски / Анимация",
-  Kids: "Детски",
-  Movies: "Филмови",
-  Music: "Музикални",
-  Documentary: "Документални",
-  Sports: "Спортни",
-  Science: "Наука",
-  Outdoor: "Природа и животни",
-  Family: "Семейни",
-  Entertainment: "Развлекателни",
-  General: "Общи",
-  News: "Новини",
-  Education: "Образователни",
-  Travel: "Пътешествия",
-  Culture: "Култура",
-  Relax: "Релакс",
-  Lifestyle: "Начин на живот",
-  Comedy: "Комедийни",
-  Series: "Сериали",
-  Classic: "Класически",
-  Public: "Обществени",
-  Auto: "Автомобили",
-  Cooking: "Кулинарни",
-  Business: "Бизнес",
-  Weather: "Времето",
-  Legislative: "Парламентарни",
-  Religious: "Религиозни",
-  Shop: "Телешопинг",
-  Interactive: "Интерактивни"
+  Animation: "Детски / Анимация", Kids: "Детски", Movies: "Филмови",
+  Music: "Музикални", Documentary: "Документални", Sports: "Спортни",
+  Science: "Наука", Outdoor: "Природа и животни", Family: "Семейни",
+  Entertainment: "Развлекателни", General: "Общи", News: "Новини",
+  Education: "Образователни", Travel: "Пътешествия", Culture: "Култура",
+  Relax: "Релакс", Lifestyle: "Начин на живот", Comedy: "Комедийни",
+  Series: "Сериали", Classic: "Класически", Public: "Обществени",
+  Auto: "Автомобили", Cooking: "Кулинарни", Business: "Бизнес",
+  Weather: "Времето", Legislative: "Парламентарни", Religious: "Религиозни",
+  Shop: "Телешопинг", Interactive: "Интерактивни"
 };
 
 async function fetchText(url) {
@@ -66,14 +47,9 @@ function parseEntries(source) {
       const line = lines[++i].trim();
       if (!line) continue;
       block.push(line);
-      if (!line.startsWith("#")) {
-        streamUrl = line;
-        break;
-      }
+      if (!line.startsWith("#")) { streamUrl = line; break; }
     }
-    if (streamUrl && /^https?:\/\//i.test(streamUrl)) {
-      entries.push({ block, streamUrl });
-    }
+    if (streamUrl && /^https?:\/\//i.test(streamUrl)) entries.push({ block, streamUrl });
   }
   return entries;
 }
@@ -91,18 +67,17 @@ function setGroup(extinf, group) {
 function prepare(entries, mode) {
   return entries.map(entry => {
     const block = [...entry.block];
-    const titleLine = block[0];
     let group = "Други";
     if (mode === "bulgaria") {
       group = "🇧🇬 Български";
     } else {
-      const match = titleLine.match(/\bgroup-title="([^"]*)"/i);
+      const match = block[0].match(/\bgroup-title="([^"]*)"/i);
       if (match) {
         const original = match[1].split(";")[0].trim();
         group = GROUP_NAMES[original] || original || "Други";
       }
     }
-    block[0] = setGroup(titleLine, group);
+    block[0] = setGroup(block[0], group);
     return { block, streamUrl: entry.streamUrl };
   });
 }
@@ -112,34 +87,34 @@ export default async function handler(req, res) {
     res.setHeader("Allow", "GET, HEAD");
     return res.status(405).send("Method not allowed");
   }
-
   res.setHeader("Content-Type", "audio/x-mpegurl; charset=utf-8");
   res.setHeader("Content-Disposition", 'inline; filename="iptv-org-combined.m3u"');
   res.setHeader("Cache-Control", "public, s-maxage=600, stale-while-revalidate=1800");
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   try {
-    const [allResult, bgResult] = await Promise.allSettled([
+    const [allResult, bgResult, languageResult] = await Promise.allSettled([
       fetchText(SOURCES.all),
-      fetchText(SOURCES.bulgaria)
+      fetchText(SOURCES.bulgaria),
+      fetchText(SOURCES.bulgarianLanguage)
     ]);
-
     if (allResult.status !== "fulfilled") {
       throw allResult.reason || new Error("The main iptv-org playlist is unavailable.");
     }
 
     const allEntries = prepare(parseEntries(allResult.value), "all");
     const bgEntries = bgResult.status === "fulfilled"
-      ? prepare(parseEntries(bgResult.value), "bulgaria")
-      : [];
+      ? prepare(parseEntries(bgResult.value), "bulgaria") : [];
+    const languageEntries = languageResult.status === "fulfilled"
+      ? prepare(parseEntries(languageResult.value), "bulgaria") : [];
 
     const output = ["#EXTM3U"];
     const seen = new Set();
     let count = 0;
     let bgCount = 0;
 
-    // Put Bulgarian channels first, then add the worldwide catalogue.
-    for (const entry of [...bgEntries, ...allEntries]) {
+    // Bulgarian-language and Bulgaria-based channels first, then worldwide channels.
+    for (const entry of [...bgEntries, ...languageEntries, ...allEntries]) {
       const key = entry.streamUrl.trim();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -155,10 +130,7 @@ export default async function handler(req, res) {
     return res.status(200).send(output.join("\n") + "\n");
   } catch (error) {
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    return res.status(502).send(
-      "#EXTM3U\n# Playlist update failed: " +
-      String(error && error.message ? error.message : error).replace(/[\r\n]/g, " ") +
-      "\n"
-    );
+    return res.status(502).send("#EXTM3U\n# Playlist update failed: " +
+      String(error && error.message ? error.message : error).replace(/[\r\n]/g, " ") + "\n");
   }
 }
