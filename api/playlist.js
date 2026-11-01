@@ -56,7 +56,7 @@ async function fetchText(url) {
 }
 
 function parseEntries(source) {
-  const lines = source.replace(/^\\uFEFF/, "").split(/\\r?\\n/);
+  const lines = source.replace(/^\uFEFF/, "").split(/\r?\n/);
   const entries = [];
   for (let i = 0; i < lines.length; i++) {
     if (!lines[i].startsWith("#EXTINF")) continue;
@@ -71,7 +71,7 @@ function parseEntries(source) {
         break;
       }
     }
-    if (streamUrl && /^https?:\\/\\//i.test(streamUrl)) {
+    if (streamUrl && /^https?:\/\//i.test(streamUrl)) {
       entries.push({ block, streamUrl });
     }
   }
@@ -80,8 +80,8 @@ function parseEntries(source) {
 
 function setGroup(extinf, group) {
   const safeGroup = group.replace(/"/g, "");
-  if (/\\bgroup-title="[^"]*"/i.test(extinf)) {
-    return extinf.replace(/\\bgroup-title="[^"]*"/i, 'group-title="' + safeGroup + '"');
+  if (/\bgroup-title="[^"]*"/i.test(extinf)) {
+    return extinf.replace(/\bgroup-title="[^"]*"/i, 'group-title="' + safeGroup + '"');
   }
   const comma = extinf.indexOf(",");
   if (comma < 0) return extinf + ' group-title="' + safeGroup + '"';
@@ -96,7 +96,7 @@ function prepare(entries, mode) {
     if (mode === "bulgaria") {
       group = "🇧🇬 Български";
     } else {
-      const match = titleLine.match(/\\bgroup-title="([^"]*)"/i);
+      const match = titleLine.match(/\bgroup-title="([^"]*)"/i);
       if (match) {
         const original = match[1].split(";")[0].trim();
         group = GROUP_NAMES[original] || original || "Други";
@@ -152,13 +152,13 @@ export default async function handler(req, res) {
     res.setHeader("X-Bulgarian-Channels", String(bgCount));
     res.setHeader("X-Playlist-Source", "iptv-org");
     if (req.method === "HEAD") return res.status(200).end();
-    return res.status(200).send(output.join("\\n") + "\\n");
+    return res.status(200).send(output.join("\n") + "\n");
   } catch (error) {
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     return res.status(502).send(
-      "#EXTM3U\\n# Playlist update failed: " +
-      String(error && error.message ? error.message : error).replace(/[\\r\\n]/g, " ") +
-      "\\n"
+      "#EXTM3U\n# Playlist update failed: " +
+      String(error && error.message ? error.message : error).replace(/[\r\n]/g, " ") +
+      "\n"
     );
   }
 }
